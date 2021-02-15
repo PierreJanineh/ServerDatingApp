@@ -47,15 +47,21 @@ public class Room {
         this.lastMessage = lastMessage;
     }
 
-    public static ArrayList<Room> getRoomsFromUIDs(int[] uids){
-        ArrayList<Room> rooms = new ArrayList<>();
-        for (int room :
-                uids) {
-            rooms.add(Room.getRoomFromUID(room));
-        }
-        return rooms;
+    /**
+     * Get the list of chat rooms for a user by UID.
+     * @param uid
+     * Classes.User UID to get Rooms for.
+     * @return
+     * String Of Json array of Rooms.
+     */
+    public static String getJsonStringOfAllRoomsForUser(int uid){
+
+        return getJsonStringOfArrayOfRooms(getAllRoomsForUser(uid));
     }
 
+    /*
+            DB Functions
+     */
     /**
      * Get a Room by UID. This function communicates with the DB.
      * @param uid
@@ -89,16 +95,21 @@ public class Room {
         return room;
     }
 
-    /**
-     * Get the list of chat rooms for a user by UID.
-     * @param uid
-     * Classes.User UID to get Rooms for.
-     * @return
-     * String Of Json array of Rooms.
-     */
-    public static String getJsonStringOfAllRoomsForUser(int uid){
 
-        return getJsonStringOfArrayOfRooms(getAllRoomsForUser(uid));
+    /**
+     * Get ArrayLis of Rooms by looping around getRoomFromUID method. This function communicates with the DB.
+     * @param uids
+     * Rooms uids as int[].
+     * @return
+     * ArrayList of Rooms.
+     */
+    public static ArrayList<Room> getRoomsFromUIDs(int[] uids){
+        ArrayList<Room> rooms = new ArrayList<>();
+        for (int room :
+                uids) {
+            rooms.add(Room.getRoomFromUID(room));
+        }
+        return rooms;
     }
 
     /**

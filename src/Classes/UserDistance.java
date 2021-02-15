@@ -1,5 +1,6 @@
 package Classes;
 
+import Clients.ClientThread;
 import com.google.gson.*;
 import com.mysql.cj.exceptions.FeatureNotAvailableException;
 
@@ -34,15 +35,25 @@ public class UserDistance {
         this.distance = distance;
     }
 
+    /**
+     * Get UserDistance object from Json String.
+     * @param jsonObject
+     * Json String.
+     * @return
+     * UserDistance Object.
+     */
+    public UserDistance(String jsonObject){
+        GsonBuilder builder = new GsonBuilder();
+        builder.setPrettyPrinting();
+
+        Gson gson = builder.create();
+        UserDistance userDistance = gson.fromJson(jsonObject, UserDistance.class);
+        this.user = userDistance.getUser();
+        this.distance = userDistance.getDistance();
+    }
+
     public UserDistance(InputStream inputStream) throws IOException {
-        int jsonLength = inputStream.read();
-        if (jsonLength == -1)
-            throw new IOException("json hasn't been sent");
-        byte[] jsonBytes = new byte[jsonLength];
-        int actuallyRead = inputStream.read(jsonBytes);
-        if (actuallyRead != jsonLength)
-            throw new IOException("");
-        UserDistance jsonUserDistance = getUserDistanceFromJson(new String(jsonBytes));
+        UserDistance jsonUserDistance = new UserDistance(ClientThread.readStringFromInptStrm(inputStream));
         this.user = jsonUserDistance.getUser();
         this.distance = jsonUserDistance.getDistance();
     }
@@ -92,21 +103,6 @@ public class UserDistance {
 
         Gson gson = builder.create();
         return gson.fromJson(json, UserDistance[].class);
-    }
-
-    /**
-     * Get UserDistance object from Json String.
-     * @param json
-     * Json String.
-     * @return
-     * UserDistance Object.
-     */
-    public static UserDistance getUserDistanceFromJson(String json) {
-        GsonBuilder builder = new GsonBuilder();
-        builder.setPrettyPrinting();
-
-        Gson gson = builder.create();
-        return gson.fromJson(json, UserDistance.class);
     }
 
     /**

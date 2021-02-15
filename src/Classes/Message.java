@@ -1,5 +1,6 @@
 package Classes;
 
+import Clients.ClientThread;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -45,14 +46,7 @@ public class Message {
     }
 
     public Message(InputStream inputStream) throws IOException {
-        int jsonLength = inputStream.read();
-        if (jsonLength == -1)
-            throw new IOException("json hasn't been sent");
-        byte[] jsonBytes = new byte[jsonLength];
-        int actuallyRead = inputStream.read(jsonBytes);
-        if (actuallyRead != jsonLength)
-            throw new IOException("");
-        Message jsonMessage = getMessageFromJson(new String(jsonBytes));
+        Message jsonMessage = getMessageFromJson(ClientThread.readStringFromInptStrm(inputStream));
         this.uid = jsonMessage.getUid();
         this.content = jsonMessage.getContent();
         this.timestamp = jsonMessage.getTimestamp();
