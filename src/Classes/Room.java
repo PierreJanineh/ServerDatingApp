@@ -14,14 +14,33 @@ import static Classes.DBConnection.getGson;
 
 public class Room {
 
-    private int roomUid;
+    /*
+    rooms table in MySQL database columns:
+                1. uid              int PK      (room uid)
+                2. seenby           longtext    (json array of users' uids)
+                3. messages         longtext    (json array of messages' uids)
+                4. recipients       longtext    (json array of users' uids)
+                5. lastmessage      longtext    (last message content)
+
+     */
+
+    /*
+    Room class in Android project contains:
+                  1. uid            int
+                  2. seenBy         ArrayList<Integer>
+                  3. messages       ArrayList<Integer>
+                  4. recipients     ArrayList<Integer>
+                  5. lastMessage    Message
+     */
+
+    private int uid;
     private int[] seenBy;
     private int[] messages; //uids
     private int[] recipients; //uids
     private Message lastMessage;
 
-    public Room(int roomUid, int[] seenBy, int[] messages, int[] recipients, Message lastMessage) {
-        this.roomUid = roomUid;
+    public Room(int uid, int[] seenBy, int[] messages, int[] recipients, Message lastMessage) {
+        this.uid = uid;
         this.seenBy = seenBy;
         this.messages = messages;
         this.recipients = recipients;
@@ -37,6 +56,13 @@ public class Room {
         return rooms;
     }
 
+    /**
+     * Get a Room by UID. This function communicates with the DB.
+     * @param uid
+     * User UID to get Room for.
+     * @return
+     * Room object.
+     */
     public static Room getRoomFromUID(int uid) {
         Room room = null;
         try (Connection conn = getConn()){
@@ -131,12 +157,12 @@ public class Room {
         return builder.create().toJson(this);
     }
 
-    public int getRoomUid() {
-        return roomUid;
+    public int getUid() {
+        return uid;
     }
 
-    public void setRoomUid(int roomUid) {
-        this.roomUid = roomUid;
+    public void setUid(int uid) {
+        this.uid = uid;
     }
 
     public int[] getSeenBy() {

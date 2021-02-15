@@ -14,6 +14,24 @@ import static Classes.DBConnection.getGson;
 
 public class UserInfo {
 
+    /*
+    users_info table in MySQL database columns:
+                1.  uid             int PK      (user's uid)
+                2.  about           longtext    (about string)
+                3.  weight          double      (weight rounded with halves)
+                4.  height          double      (height rounded with halves)
+                4.  birthdate       date        (user's date of birth)
+                5.  relationship    int         (enum value in int)
+                6.  religion        int         (enum value in int)
+                7.  orientation     int         (enum value in int)
+                8.  ethnicity       int         (enum value in int)
+                9.  reference       int         (enum value in int)
+                10. stds            longtext    (json array of enum values in int)
+                11. role            int         (enum value in int)
+                12. disability      longtext    (json array of enum values in int)
+
+     */
+
     public static final String UID = "uid";
     public static final String ABOUT = "about";
     public static final String WEIGHT = "weight";
@@ -40,38 +58,6 @@ public class UserInfo {
     private Role role;
     private Disability[] disabilities;
     public boolean notInDB;
-
-    public UserInfo(int uid) {
-        this.uid = uid;
-        this.notInDB = true;
-    }
-
-    public UserInfo(JsonObject jsonObject) throws ParseException {
-        this.uid = jsonObject.get(UID).getAsInt();
-        this.about = jsonObject.get(ABOUT).getAsString();
-        this.weight = jsonObject.get(WEIGHT).getAsInt();
-        this.height = jsonObject.get(HEIGHT).getAsInt();
-        this.birthDate = Date.valueOf(jsonObject.get(BIRTH_DATE).getAsString());
-        this.relationship = Relationship.getEnumValOf(jsonObject.get(RELATIONSHIP).getAsInt());
-        this.religion = Religion.getEnumValOf(jsonObject.get(RELIGION).getAsInt());
-        this.orientation = Orientation.getEnumValOf(jsonObject.get(ORIENTATION).getAsInt());
-        this.ethnicity = Ethnicity.getEnumValOf(jsonObject.get(ETHNICITY).getAsInt());
-        this.reference = Reference.getEnumValOf(jsonObject.get(REFERENCE).getAsInt());
-        JsonArray jsonArray = jsonObject.get(STDS).getAsJsonArray();
-        int[] arr = new int[jsonArray.size()];
-        for (int i = 0; i < arr.length; i++) {
-            arr[i] = jsonArray.get(i).getAsInt();
-        }
-        this.stDs = STD.getEnumsFrom(arr);
-        this.role = Role.getEnumValOf(jsonObject.get(ROLE).getAsInt());
-        jsonArray = jsonObject.get(DISABILITIES).getAsJsonArray();
-        arr = new int[jsonArray.size()];
-        for (int i = 0; i < arr.length; i++) {
-            arr[i] = jsonArray.get(i).getAsInt();
-        }
-        this.disabilities = Disability.getEnumsFrom(arr);
-        this.notInDB = false;
-    }
 
     public UserInfo(int uid, String about, int weight, int height, Date birthDate, Relationship relationship, Religion religion, Orientation orientation, Ethnicity ethnicity, Reference reference, STD[] stDs, Role role, Disability[] disabilities) {
         this.uid = uid;
@@ -112,6 +98,38 @@ public class UserInfo {
         this.stDs = jsonUserInfo.getStDs();
         this.role = jsonUserInfo.getRole();
         this.disabilities = jsonUserInfo.getDisabilities();
+        this.notInDB = false;
+    }
+
+    public UserInfo(int uid) {
+        this.uid = uid;
+        this.notInDB = true;
+    }
+
+    public UserInfo(JsonObject jsonObject) throws ParseException {
+        this.uid = jsonObject.get(UID).getAsInt();
+        this.about = jsonObject.get(ABOUT).getAsString();
+        this.weight = jsonObject.get(WEIGHT).getAsInt();
+        this.height = jsonObject.get(HEIGHT).getAsInt();
+        this.birthDate = Date.valueOf(jsonObject.get(BIRTH_DATE).getAsString());
+        this.relationship = Relationship.getEnumValOf(jsonObject.get(RELATIONSHIP).getAsInt());
+        this.religion = Religion.getEnumValOf(jsonObject.get(RELIGION).getAsInt());
+        this.orientation = Orientation.getEnumValOf(jsonObject.get(ORIENTATION).getAsInt());
+        this.ethnicity = Ethnicity.getEnumValOf(jsonObject.get(ETHNICITY).getAsInt());
+        this.reference = Reference.getEnumValOf(jsonObject.get(REFERENCE).getAsInt());
+        JsonArray jsonArray = jsonObject.get(STDS).getAsJsonArray();
+        int[] arr = new int[jsonArray.size()];
+        for (int i = 0; i < arr.length; i++) {
+            arr[i] = jsonArray.get(i).getAsInt();
+        }
+        this.stDs = STD.getEnumsFrom(arr);
+        this.role = Role.getEnumValOf(jsonObject.get(ROLE).getAsInt());
+        jsonArray = jsonObject.get(DISABILITIES).getAsJsonArray();
+        arr = new int[jsonArray.size()];
+        for (int i = 0; i < arr.length; i++) {
+            arr[i] = jsonArray.get(i).getAsInt();
+        }
+        this.disabilities = Disability.getEnumsFrom(arr);
         this.notInDB = false;
     }
 

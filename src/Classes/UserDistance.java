@@ -16,6 +16,15 @@ import java.util.List;
 import static Classes.DBConnection.*;
 
 public class UserDistance {
+
+    /*
+    UserDistance class in Android project contains:
+                  1. wholeUser      WholeUser
+                  2. smallUser      SmallUser
+                  3. distance       float
+                  4. isWhole        boolean
+     */
+
     public static final String DISTANCE = "distance";
     private User user;
     private float distance;

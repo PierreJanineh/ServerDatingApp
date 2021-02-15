@@ -147,7 +147,7 @@ public class ClientThread extends Thread {
         }
     }
 
-    public static String readStringFromInputStream(InputStream inputStream) throws IOException {
+    public static String readStringFromInptStrm(InputStream inputStream) throws IOException {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         int nRead;
         int dataLength = inputStream.read();

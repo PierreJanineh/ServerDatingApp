@@ -10,6 +10,26 @@ import java.sql.*;
 
 public class Message {
 
+    /*
+    messages table in MySQL database columns:
+                1. uid          int PK          (message uid)
+                2. content      longtext        (content of the message)
+                3. to           int             (user's uid)
+                4. from         int             (user's uid)
+                5. timestamp    timestamp       (date and time the message sent on)
+                6. room         int             (room's uid)
+     */
+
+    /*
+    Message class in Android project contains:
+                1. uid          int
+                2. to           SmallUser
+                3. from         SmallUser
+                4. content      String
+                4. timestamp    java.util.Date.Timestamp
+                5. isItForMeMe  boolean
+     */
+
     private int uid;
     private User to, from;
     private String content;

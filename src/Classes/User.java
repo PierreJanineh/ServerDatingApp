@@ -14,6 +14,39 @@ import static Clients.ClientThread.FAILURE;
 
 public class User {
 
+    /*
+    users table in MySQL database columns:
+                1. uid              int PK      (user uid)
+                2. username         tinytext    (username string - 255 bytes)
+                3. lat              float       (user's geopoint latitude)
+                4. lng              float       (user's geopoint longitude)
+                5. img_url          longtext    (image link - uploaded on REPLACE_IMAGE action)
+                6. favs             longtext    (json array of user's uids)
+                7. chatrooms        longtext    (json array of rooms' uids)
+                8. info             int         (user_info uid AKA 'user's uid')
+                9. joined           date        (date joined on - for searching new users)
+
+     */
+
+    /*
+    WholeUser class in Android project contains:
+                  1. uid            int
+                  2. username       String
+                  3. geoPoint       GeoPoint
+                  4. img_url        String
+                  5. favs           ArrayList<Integer>
+                  6. chatrooms      ArrayList<Room>
+                  7. info           UserInfo
+     */
+
+    /*
+    SmallUser class in Android project contains:
+                  1. uid            int
+                  2. username       String
+                  3. geoPoint       GeoPoint
+                  4. img_url        String
+     */
+
     public static final int USERNAME_DBFUNC = 100;
     public static final int IMGURL_DBFUNC = 200;
     public static final int FAV_DBFUNC = 300;
@@ -47,20 +80,55 @@ public class User {
         this.info = info;
     }
 
+    /**
+     * Creates a User object from JsonObject.
+     * @param jsonObject
+     * User jsonObject.
+     */
+    public User(JsonObject jsonObject){
+        GsonBuilder builder = new GsonBuilder();
+        builder.setPrettyPrinting();
+
+        Gson gson = builder.create();
+        User user = gson.fromJson(jsonObject, User.class);
+        this.uid = user.getUid();
+        this.username = user.getUsername();
+        this.geoPoint = user.getGeoPoint();
+        this.img_url = user.getImg_url();
+        this.favs = user.getFavs();
+        this.chatRooms = user.getChatRooms();
+        this.info = user.getInfo();
+    }
+
+    /**
+     * Creates a User object from JsonObject string.
+     * @param jsonObject
+     * User jsonObject string.
+     */
+    public User(String jsonObject){
+        GsonBuilder builder = new GsonBuilder();
+        builder.setPrettyPrinting();
+
+        Gson gson = builder.create();
+        User user = gson.fromJson(jsonObject, User.class);
+        this.uid = user.getUid();
+        this.username = user.getUsername();
+        this.geoPoint = user.getGeoPoint();
+        this.img_url = user.getImg_url();
+        this.favs = user.getFavs();
+        this.chatRooms = user.getChatRooms();
+        this.info = user.getInfo();
+    }
+
+    /**
+     * Gets a user from InputStream by reading string and creating a new User
+     * @param inputStream
+     * InputStream object from the Socket
+     * @throws IOException
+     * throws IOException if reading from InputStream fails.
+     */
     public User(InputStream inputStream) throws IOException {
-
-//        buffer.flush();
-
-//        int jsonLength = inputStream.read();
-//        if (jsonLength == -1)
-//            throw new IOException("json hasn't been sent");
-//        byte[] jsonBytes = new byte[jsonLength];
-//        int actuallyRead = inputStream.read(jsonBytes);
-//        if (actuallyRead != jsonLength)
-//            throw new IOException("");
-//        User jsonUser = getUserFromJson(new String(jsonBytes));
-
-        User jsonUser = getUserFromJson(ClientThread.readStringFromInputStream(inputStream));
+        User jsonUser = new User(ClientThread.readStringFromInptStrm(inputStream));
         this.uid = jsonUser.getUid();
         this.username = jsonUser.getUsername();
         this.geoPoint = jsonUser.getGeoPoint();
@@ -487,7 +555,7 @@ public class User {
         object.add(FAVS, favsArr);
         JsonArray roomsArr = new JsonArray(chatRooms.size());
         for (Room room : chatRooms) {
-            roomsArr.add(room.getRoomUid());
+            roomsArr.add(room.getUid());
         }
         object.add(ROOMS, roomsArr);
         object.addProperty(INFO, this.info.getUid());

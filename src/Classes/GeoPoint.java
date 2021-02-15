@@ -8,6 +8,12 @@ import java.io.InputStream;
 
 public class GeoPoint {
 
+    /*
+    GeoPoint class in Android project contains:
+                  1. lat        float
+                  2. lng        float
+     */
+
     private float lat, lng;
 
     public GeoPoint(float lat, float lng) {
