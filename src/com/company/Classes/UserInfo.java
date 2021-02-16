@@ -232,9 +232,9 @@ public class UserInfo {
                                 Orientation.getEnumValOf(resultSet.getInt(8)),
                                 Ethnicity.getEnumValOf(resultSet.getInt(9)),
                                 Reference.getEnumValOf(resultSet.getInt(10)),
-                                STD.getEnumsFrom(getGson().fromJson(new JsonParser().parse(resultSet.getCharacterStream(11)).getAsJsonArray(), int[].class)),
+                                STD.getEnumsFrom(getGson().fromJson(JsonParser.parseReader(resultSet.getCharacterStream(11)), int[].class)),
                                 Role.getEnumValOf(resultSet.getInt(12)),
-                                Disability.getEnumsFrom(getGson().fromJson(new JsonParser().parse(resultSet.getCharacterStream(13)).getAsJsonArray(), int[].class)));
+                                Disability.getEnumsFrom(getGson().fromJson(JsonParser.parseReader(resultSet.getCharacterStream(13)), int[].class)));
                     }
                 }catch (SQLException throwables) {
                     throwables.printStackTrace();

@@ -5,7 +5,6 @@ import com.company.Classes.*;
 import java.io.*;
 import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -23,18 +22,19 @@ public class ClientThread extends Thread {
     public static final int SEND_MESSAGE = 101;
     public static final int GET_MESSAGES = 102;
     /*USER*/
-    public static final int GET_NEARBY_USERS = 120;
-    public static final int ADD_USER = 121;
-    public static final int GET_USER_FROM_UID = 122;
-    public static final int ADD_FAV = 123;
-    public static final int REM_FAV = 124;
-    public static final int GET_FAVS = 125;
-    public static final int GET_USERINFO = 126;
-    public static final int UPDATE_USERINFO = 127;
-    public static final int GET_NEW_USERS = 128;
-    public static final int GET_USERDISTANCE = 129;
-    public static final int GET_SMALL_USER = 130;
-    public static final int UPDATE_USER_FIELDS = 131;
+    public static final int GET_USER_FROM_UID = 120;
+    public static final int GET_SMALL_USER = 121;
+    public static final int GET_CURRENT_USER = 122;
+    public static final int GET_NEARBY_USERS = 123;
+    public static final int GET_NEW_USERS = 124;
+    public static final int GET_USERINFO = 125;
+    public static final int GET_USERDISTANCE = 126;
+    public static final int GET_FAVS = 127;
+    public static final int ADD_USER = 128;
+    public static final int ADD_FAV = 129;
+    public static final int REM_FAV = 130;
+    public static final int UPDATE_USERINFO = 131;
+    public static final int UPDATE_USER_FIELDS = 132;
 
     public static final int TEST = 140;
     /*GEO_POINT*/
@@ -83,7 +83,11 @@ public class ClientThread extends Thread {
                     break;
                 case GET_USER_FROM_UID:
                     System.out.println("GET USER");
-                    getUserFromUID();
+                    getWholeUserFromUID();
+                    break;
+                case GET_CURRENT_USER:
+                    System.out.println("GET CURRENT USER");
+                    getCurrentUser();
                     break;
                 case ADD_FAV:
                     System.out.println("ADD FAV");
@@ -202,7 +206,7 @@ public class ClientThread extends Thread {
 
     private void getNearbyUsers() throws IOException{
         int uid = inputStream.read();
-        List<UserDistance> users = User.getNearbyUsers(uid);
+        List<UserDistance> users = UserDistance.getNearbyUsers(uid);
         String json = UserDistance.getJsonStringFromListOfUserDistances(users);
         System.out.println("nearbyUsers: "+json);
         byte[] bytes = json.getBytes();
@@ -219,9 +223,14 @@ public class ClientThread extends Thread {
         outputStream.write(FAILURE);
     }
 
-    private void getUserFromUID() throws IOException{
+    private void getWholeUserFromUID() throws IOException{
         int uid = inputStream.read();
-        User.getUserByUID(uid).write(outputStream);
+        User.getWholeUserByUID(uid).write(outputStream);
+    }
+
+    private void getCurrentUser() throws IOException{
+        int uid = inputStream.read();
+        User.getWholeCurrentUserByUID(uid).write(outputStream);
     }
 
     private void addFavouriteUser() throws IOException{
@@ -242,7 +251,9 @@ public class ClientThread extends Thread {
 
     private void getFavourites() throws IOException{
         int currentUser = inputStream.read();
-        String json = User.getJsonStringFromArrayOfUsers(User.getUsersByUIDs(User.getUserByUID(currentUser).getFavs()));
+        ArrayList<Integer> favs = User.getWholeCurrentUserByUID(currentUser).getFavs();
+        User[] users = User.getSmallUsersByUIDs(favs);
+        String json = User.getJsonStringFromArrayOfUsers(users);
         byte[] bytes = json.getBytes();
         outputStream.write(bytes.length);
         outputStream.write(bytes);
@@ -272,6 +283,7 @@ public class ClientThread extends Thread {
     private void getUserDistance() throws IOException, InterruptedException {
         int currentUID = inputStream.read();
         int otherUID = inputStream.read();
+        System.out.println("current: "+currentUID+" | other: "+otherUID);
         UserDistance.getUserByUID(currentUID, otherUID).write(outputStream);
     }
 

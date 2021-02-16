@@ -86,8 +86,8 @@ public class Message {
                             resultSet.getInt(1),
                             resultSet.getString(2),
                             resultSet.getTimestamp(3),
-                            User.getUserByUID(resultSet.getInt(4)),
-                            User.getUserByUID(resultSet.getInt(5)));
+                            User.getSmallUserByUID(resultSet.getInt(4)),
+                            User.getSmallUserByUID(resultSet.getInt(5)));
                 }catch (SQLException throwables) {
                     throwables.printStackTrace();
                 }

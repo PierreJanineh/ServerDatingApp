@@ -6,10 +6,8 @@ import com.google.gson.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -62,7 +60,7 @@ public class UserDistance {
         this.distance = resultSet.getFloat(10);
     }
 
-    public static UserDistance getUserByUID(int currentUID, int otherUID) throws IOException{
+    public static UserDistance getUserByUID(int currentUID, int otherUID){
         UserDistance userDistance = null;
         try (Connection conn = getConn()){
             try (PreparedStatement statement = conn.prepareStatement(GET_USER_DISTANCE_FUNC)){
@@ -73,7 +71,7 @@ public class UserDistance {
                         userDistance = new UserDistance(resultSet);
                     }
                 }catch (Exception throwables) {
-//                    throwables.printStackTrace();
+                    throwables.printStackTrace();
                     System.out.println(throwables.toString());
                 }
             }catch (SQLException throwables) {
@@ -102,6 +100,31 @@ public class UserDistance {
 
         Gson gson = builder.create();
         return gson.fromJson(json, UserDistance[].class);
+    }
+
+    public static List<UserDistance> getNearbyUsers(int uid){
+        List<UserDistance> users = new ArrayList<>();
+        try (Connection conn = getConn()){
+            try (CallableStatement statement = conn.prepareCall(
+                    "CALL geodist(?,10)")){
+                statement.setInt(1, uid);
+                try (ResultSet resultSet = statement.executeQuery()){
+                    while (resultSet.next()){
+                        users.add(
+                                new UserDistance(
+                                        new User(resultSet, true),
+                                        resultSet.getFloat(10)));
+                    }
+                }catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                }
+            }catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+        }catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return users;
     }
 
     /**

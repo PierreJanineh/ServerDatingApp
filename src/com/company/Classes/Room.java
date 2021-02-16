@@ -15,6 +15,7 @@ import static com.company.Classes.DBConnection.getConn;
 import static com.company.Classes.DBConnection.getGson;
 
 public class Room {
+    public static final String CHATROOMS = "chatrooms";
 
     /*
     rooms table in MySQL database columns:
@@ -136,10 +137,13 @@ public class Room {
                 statement.setString(1, uid+"");
                 try(ResultSet resultSet = statement.executeQuery()){
                     if (resultSet.next()){
-                        int[] chatrooms = getGson().fromJson(new JsonParser().parse(resultSet.getCharacterStream("chatrooms")).getAsJsonArray(), int[].class);
-                        for (int room:
-                             chatrooms) {
-                            rooms.add(getRoomFromUID(room));
+                        if (resultSet.getString(CHATROOMS) != null && resultSet.getString(CHATROOMS).isEmpty()){
+                            int[] chatrooms = getGson().fromJson(JsonParser.parseReader(resultSet.getCharacterStream(CHATROOMS)), int[].class);
+                            for (int room : chatrooms) {
+                                rooms.add(getRoomFromUID(room));
+                            }
+                        }else {
+                            return null;
                         }
                     }
                 }

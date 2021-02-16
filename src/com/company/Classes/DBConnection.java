@@ -33,9 +33,11 @@ public class DBConnection {
     }
 
     public static ArrayList<Integer> getArrayListFromArray(int[] arr){
+        if (arr == null){
+            return null;
+        }
         ArrayList<Integer> array =  new ArrayList<>();
-        for (int num :
-                arr) {
+        for (int num : arr) {
             array.add(num);
         }
         return array;

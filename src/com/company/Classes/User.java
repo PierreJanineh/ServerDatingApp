@@ -29,13 +29,22 @@ public class User {
      */
 
     /*
-    WholeUser class in Android project contains:
+    WholeCurrentUser class in Android project contains:
                   1. uid            int
                   2. username       String
                   3. geoPoint       GeoPoint
                   4. img_url        String
                   5. favs           ArrayList<Integer>
                   6. chatrooms      ArrayList<Room>
+                  7. info           UserInfo
+     */
+
+    /*
+    WholeUser class in Android project contains:
+                  1. uid            int
+                  2. username       String
+                  3. geoPoint       GeoPoint
+                  4. img_url        String
                   7. info           UserInfo
      */
 
@@ -150,33 +159,8 @@ public class User {
         }
     }
 
-    public static List<UserDistance> getNearbyUsers(int uid){
-        List<UserDistance> users = new ArrayList<>();
-        try (Connection conn = getConn()){
-            try (CallableStatement statement = conn.prepareCall(
-                    "CALL geodist(?,10)")){
-                statement.setInt(1, uid);
-                try (ResultSet resultSet = statement.executeQuery()){
-                    while (resultSet.next()){
-                        users.add(
-                                new UserDistance(
-                                        new User(resultSet, true),
-                                        resultSet.getFloat(10)));
-                    }
-                }catch (SQLException throwables) {
-                    throwables.printStackTrace();
-                }
-            }catch (SQLException throwables) {
-                throwables.printStackTrace();
-            }
-        }catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return users;
-    }
-
     /**
-     * Get User object from Json String.
+     * Get User object from Json String by using gson.
      * @param json
      * Json String.
      * @return
@@ -191,7 +175,7 @@ public class User {
     }
 
     /**
-     * Adds a new User. This functions communicates with the DB.
+     * Adds a new User ot the DB. This functions communicates with the DB.
      * @param user
      * New User to add.
      * @return
@@ -211,10 +195,10 @@ public class User {
                 return false;
             try(PreparedStatement statement = conn.prepareStatement(
                     "INSERT INTO users(" +
-                            "uid/*INT*/,username/*TINYTEXT*/," +
-                            "lat/*DOUBLE*/,lng/*DOUBLE*/," +
-                            "img_url/*LONGTEXT*/,favs/*LONGTEXT*/," +
-                            "chatrooms/*LONGTEXT*/,info/*INT*/)" +
+                            "uid,username," +
+                            "lat,lng," +
+                            "img_url,favs," +
+                            "chatrooms,info)" +
                             " VALUES (?,?,?,?,?,?,?,?)")){
                 statement.setInt(1, user.getUid());
                 statement.setString(2, user.getUsername());
@@ -229,7 +213,7 @@ public class User {
                 return true;
             }
         }catch (SQLIntegrityConstraintViolationException e){
-            System.out.println("here we understand that this key already exists in the table");
+            System.out.println("this key already exists in the table");
 //            if(e.getMessage().contains("'PRIMARY'")){
 //
 //            }
@@ -247,16 +231,16 @@ public class User {
     }
 
     /**
-     * Get Classes.User object by UID. This function communicates with the DB. ++
+     * Get SmallUser objects by UID by going in a loop around the ArrayList passed. This function communicates with the DB. ++
      * @param uidS
-     * Classes.User UID int Array.
+     * User UID int Array.
      * @return
-     * Classes.User objects Array referred by the UIDs provided.
+     * User objects Array referred by the UIDs provided.
      */
-    public static User[] getUsersByUIDs(ArrayList<Integer> uidS){
+    public static User[] getSmallUsersByUIDs(ArrayList<Integer> uidS){
         User[] users = new User[uidS.size() -1];
         for (int i = 0; i <= uidS.size(); i++){
-            users[i] = getUserByUID(uidS.get(i));
+            users[i] = getSmallUserByUID(uidS.get(i));
         }
         return users;
     }
@@ -277,25 +261,62 @@ public class User {
     }
 
     /**
-     * Get Classes.User object by UID. This functions communicates with the DB.
+     * Get WholeUser object by UID. This functions communicates with the DB.
      * @param uid
      * Classes.User UID int.
      * @return
      * Classes.User object referred by the UID provided.
      */
-    public static User getUserByUID(int uid) {
+    public static User getWholeUserByUID(int uid) {
         User user = null;
         try (Connection conn = getConn()){
             try (PreparedStatement statement = conn.prepareStatement("SELECT * FROM users WHERE uid=? LIMIT 1")){
                 statement.setInt(1, uid);
                 try (ResultSet resultSet = statement.executeQuery()){
                     if (resultSet.next()) {
-                        System.out.println(resultSet.getString(6));
+                        user = new User(
+                                resultSet.getInt(1),
+                                resultSet.getString(2),
+                                new GeoPoint(resultSet.getInt(3), resultSet.getInt(4)),
+                                resultSet.getString(5),
+                                null,
+                                null,
+                                UserInfo.getUserInfoByUID(resultSet.getInt(1)));
+                    }
+                }catch (Exception throwables) {
+                    throwables.printStackTrace();
+                    System.out.println(throwables.toString());
+                }
+            }catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+        }catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return user;
+    }
+
+    /**
+     * Get WholeCurrentUser object by UID. This functions communicates with the DB.
+     * @param uid
+     * Classes.User UID int.
+     * @return
+     * Classes.User object referred by the UID provided.
+     */
+    public static User getWholeCurrentUserByUID(int uid) {
+        User user = null;
+        try (Connection conn = getConn()){
+            try (PreparedStatement statement = conn.prepareStatement("SELECT * FROM users WHERE uid=? LIMIT 1")){
+                statement.setInt(1, uid);
+                try (ResultSet resultSet = statement.executeQuery()){
+                    if (resultSet.next()) {
                         //Get array of favs
                         JsonReader reader = getGson().newJsonReader(new StringReader(resultSet.getString(6)));
                         reader.setLenient(true);
-                        int[] favsArr = getGson().fromJson(reader, int[].class);
-//                        int[] roomsArr = new Gson().fromJson(resultSet.getString(7), int[].class);
+                        int[] favsArr = null;
+                        if (resultSet.getString(6) == null){
+                            favsArr = getGson().fromJson(reader, int[].class);
+                        }
                         user = new User(
                                 resultSet.getInt(1),
                                 resultSet.getString(2),
