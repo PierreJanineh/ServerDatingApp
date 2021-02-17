@@ -236,17 +236,15 @@ public class ClientThread extends Thread {
     private void addFavouriteUser() throws IOException{
         int currentUser = inputStream.read();
         int favUser = inputStream.read();
-
-        int status = User.addOrRemoveFavouriteUsersOrRooms(User.ADD_DBFUNC, User.FAV_DBFUNC, favUser, currentUser);
+        int status = User.addOrRemoveFavouriteUsersOrRooms(User.ADD_DBFUNC, User.FAV_DBFUNC, currentUser, favUser);
         outputStream.write(status);
     }
 
     private void removeFavouriteUser() throws IOException{
-        int favUser = inputStream.read();
         int currentUser = inputStream.read();
-
-        User.addOrRemoveFavouriteUsersOrRooms(User.REMOVE_DBFUNC, User.FAV_DBFUNC, favUser, currentUser);
-        outputStream.write(OKAY);
+        int favUser = inputStream.read();
+        int status = User.addOrRemoveFavouriteUsersOrRooms(User.REMOVE_DBFUNC, User.FAV_DBFUNC, currentUser, favUser);
+        outputStream.write(status);
     }
 
     private void getFavourites() throws IOException{

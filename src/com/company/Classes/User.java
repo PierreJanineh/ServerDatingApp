@@ -311,19 +311,21 @@ public class User {
                 try (ResultSet resultSet = statement.executeQuery()){
                     if (resultSet.next()) {
                         //Get array of favs
-                        JsonReader reader = getGson().newJsonReader(new StringReader(resultSet.getString(6)));
-                        reader.setLenient(true);
+                        JsonReader reader;
                         int[] favsArr = null;
-                        if (resultSet.getString(6) == null){
+                        if (resultSet.getString(6) != null){
+                            reader = getGson().newJsonReader(resultSet.getCharacterStream(6));
+                            reader.setLenient(true);
                             favsArr = getGson().fromJson(reader, int[].class);
                         }
+                        ArrayList<Room> rooms = Room.getAllRoomsForUser(resultSet.getInt(1));
                         user = new User(
                                 resultSet.getInt(1),
                                 resultSet.getString(2),
                                 new GeoPoint(resultSet.getInt(3), resultSet.getInt(4)),
                                 resultSet.getString(5),
                                 getArrayListFromArray(favsArr),
-                                Room.getAllRoomsForUser(resultSet.getInt(1)),
+                                rooms,
                                 UserInfo.getUserInfoByUID(resultSet.getInt(1)));
                     }
                 }catch (Exception throwables) {
@@ -453,10 +455,12 @@ public class User {
     public static int addOrRemoveFavouriteUsersOrRooms(int action, int favOrRoom, int currentUID, int otherUID){
         String fieldToUpdate = "";
         switch (favOrRoom){
-            case FAV_DBFUNC:
+            case FAV_DBFUNC -> {
                 fieldToUpdate = "favs";
-            case ROOM_DBFUNC:
+            }
+            case ROOM_DBFUNC -> {
                 fieldToUpdate = "chatrooms";
+            }
         }
 
         try (Connection conn = getConn()) {
@@ -465,41 +469,38 @@ public class User {
                 try (ResultSet resultSet = selectingStatement.executeQuery()){
                     ArrayList<Integer> arrayList = new ArrayList<>();
                     String jsonString = "";
+                    GsonBuilder builder = new GsonBuilder();
+                    builder.setPrettyPrinting();
                     if (resultSet.next()){
                         if ((jsonString = resultSet.getString(1)) != null && !jsonString.isEmpty()){
-                            GsonBuilder builder = new GsonBuilder();
-                            builder.setPrettyPrinting();
                             int[] intUIDs = builder.create().fromJson(jsonString, int[].class);
                             for (int i : intUIDs) {
                                 arrayList.add(i);
                             }
-                            jsonString = builder.create().toJson(arrayList);
                         }
                     }
-                    switch (action){
-                        case ADD_DBFUNC:
+                    switch (action) {
+                        case ADD_DBFUNC -> {
                             arrayList.add(otherUID);
-                        case REMOVE_DBFUNC:
-                            for (int i = 0; i <= arrayList.size(); i++) {
-                                if (arrayList.get(i) == otherUID){
+                        }
+                        case REMOVE_DBFUNC -> {
+                            for (int i = 0; i < arrayList.size(); i++) {
+                                if (arrayList.get(i) == otherUID) {
                                     arrayList.remove(i);
                                     break;
                                 }
                             }
+                        }
                     }
-//                    if (favOrRoom == FAV_DBFUNC) {
-//
-//                    }
-
+                    jsonString = builder.create().toJson(arrayList);
+                    System.out.println("jsonString + "+jsonString+" | current = "+currentUID+" | other = "+otherUID);
                     try (PreparedStatement updatingStatement = conn.prepareStatement("UPDATE users SET " + fieldToUpdate + "=? WHERE uid=?")){
                         updatingStatement.setString(1, jsonString);
                         updatingStatement.setInt(2, currentUID);
-
-                        return ClientThread.OKAY;
+                        return updatingStatement.executeUpdate() > 0 ? ClientThread.OKAY : FAILURE;
                     }catch (SQLException throwables) {
                         throwables.printStackTrace();
                     }
-
                 }catch (SQLException throwables) {
                     throwables.printStackTrace();
                 }

@@ -134,10 +134,10 @@ public class Room {
 
         try(Connection conn = DBConnection.getConn()){
             try(PreparedStatement statement = conn.prepareStatement("SELECT chatrooms FROM users WHERE uid=? LIMIT 1")){
-                statement.setString(1, uid+"");
+                statement.setInt(1, uid);
                 try(ResultSet resultSet = statement.executeQuery()){
                     if (resultSet.next()){
-                        if (resultSet.getString(CHATROOMS) != null && resultSet.getString(CHATROOMS).isEmpty()){
+                        if (resultSet.getString(CHATROOMS) != null && !resultSet.getString(CHATROOMS).isEmpty()){
                             int[] chatrooms = getGson().fromJson(JsonParser.parseReader(resultSet.getCharacterStream(CHATROOMS)), int[].class);
                             for (int room : chatrooms) {
                                 rooms.add(getRoomFromUID(room));
