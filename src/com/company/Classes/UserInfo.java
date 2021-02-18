@@ -1,5 +1,6 @@
 package com.company.Classes;
 
+import com.company.Clients.ClientThread;
 import com.google.gson.*;
 
 import java.io.IOException;
@@ -11,6 +12,9 @@ import java.text.SimpleDateFormat;
 
 import static com.company.Classes.DBConnection.getConn;
 import static com.company.Classes.DBConnection.getGson;
+import static com.company.Classes.UserInfo.Disability.getValOf;
+import static com.company.Clients.ClientThread.FAILURE;
+import static com.company.Clients.ClientThread.OKAY;
 
 public class UserInfo {
 
@@ -76,15 +80,14 @@ public class UserInfo {
         this.notInDB = false;
     }
 
-    public UserInfo(InputStream inputStream) throws IOException {
-        int jsonLength = inputStream.read();
-        if (jsonLength == -1)
-            throw new IOException("json hasn't been sent");
-        byte[] jsonBytes = new byte[jsonLength];
-        int actuallyRead = inputStream.read(jsonBytes);
-        if (actuallyRead != jsonLength)
-            throw new IOException("");
-        UserInfo jsonUserInfo = getUserInfoFromJson(new String(jsonBytes));
+    public UserInfo(InputStream inputStream) {
+        String jsonString = null;
+        try {
+            jsonString = ClientThread.readStringFromInptStrm(inputStream);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        UserInfo jsonUserInfo = getUserInfoFromJson(jsonString);
         this.uid = jsonUserInfo.getUid();
         this.about = jsonUserInfo.getAbout();
         this.weight = jsonUserInfo.getWeight();
@@ -169,13 +172,13 @@ public class UserInfo {
                 return false;
             try(PreparedStatement statement = conn.prepareStatement(
                     "INSERT INTO users_info(" +
-                            "uid/*INT*/,about/*String*/," +
-                            "weight/*Double*/,height/*Double*/," +
-                            "birth_date/*Date*/,relationship/*Int*/," +
-                            "religion/*Int*/,orientation/*Int*/," +
-                            "ethnicity/*Int*/,reference/*Int*/," +
-                            "stds/*LONGTEXT*/,role/*Int*/," +
-                            "disability/*LONGTEXT*/ " +
+                            "uid,about," +
+                            "weight,height," +
+                            "birth_date,relationship," +
+                            "religion,orientation," +
+                            "ethnicity,reference," +
+                            "stds,role," +
+                            "disability " +
                             " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)")){
                 statement.setInt(1, userInfo.getUid());
                 statement.setString(2, userInfo.getAbout());
@@ -255,17 +258,17 @@ public class UserInfo {
      * @param userinfo
      * Updated Classes.UserInfo object containing.
      */
-    public static void updateUserInfo(int uid, UserInfo userinfo) {
+    public static int updateUserInfo(int uid, UserInfo userinfo) {
 
         try (Connection conn = getConn()) {
             try (PreparedStatement statement = conn.prepareStatement(
                     "UPDATE users_info " +
-                            "SET about=?/*String*/,weight=?/*Double*/," +
-                            "height=?/*Double*/,birth_date=?/*Date*/," +
-                            "relationship=?/*Int*/,religion=?/*Int*/," +
-                            "orientation=?/*Int*/,ethnicity=?/*Int*/," +
-                            "reference=?/*Int*/,stds=?/*LONGTEXT*/," +
-                            "role=?/*Int*/,disability=?/*LONGTEXT*/ " +
+                            "SET about=?,weight=?," +
+                            "height=?,birth_date=?," +
+                            "relationship=?,religion=?," +
+                            "orientation=?,ethnicity=?," +
+                            "reference=?,stds=?," +
+                            "role=?,disability=? " +
                             "WHERE uid=?")){
                 statement.setString(1, userinfo.getAbout());
                 statement.setDouble(2, userinfo.getHeight());
@@ -278,16 +281,19 @@ public class UserInfo {
                 statement.setInt(9, Reference.getValOf(userinfo.getReference()));
                 GsonBuilder gsonBuilder = new GsonBuilder();
                 gsonBuilder.setPrettyPrinting();
-                statement.setString(10, gsonBuilder.create().toJson(userinfo.getStDs()));
+                statement.setString(10, gsonBuilder.create().toJson(STD.getArrayOfIntsFrom(userinfo.getStDs())));
                 statement.setInt(11, Role.getValOf(userinfo.getRole()));
-                statement.setString(12, gsonBuilder.create().toJson(userinfo.getDisabilities()));
+                statement.setString(12, gsonBuilder.create().toJson(Disability.getArrayOfIntsFrom(userinfo.getDisabilities())));
                 statement.setInt(13, uid);
+
+                return statement.executeUpdate() == 0 ? ClientThread.FAILURE : OKAY;
             }catch (SQLException throwables) {
                 throwables.printStackTrace();
             }
         }catch (SQLException e) {
             e.printStackTrace();
         }
+        return FAILURE;
     }
 
 
@@ -302,34 +308,6 @@ public class UserInfo {
         outputStream.write(bytes.length);
         outputStream.write(bytes);
     }
-
-//
-//    /**
-//     * creates a json object to return to Client with Userinfo UID instead of Object.
-//     * @return
-//     * String: json object of Class User.
-//     */
-//    public String toClientString() {
-//        JsonObject object = new JsonObject();
-//        object.addProperty(UID, this.uid);
-//        object.addProperty(, this.username);
-//        object.addProperty(LAT, this.geoPoint.getLat());
-//        object.addProperty(LNG, this.geoPoint.getLng());
-//        object.addProperty(IMG_URL, this.img_url);
-//        JsonArray favsArr = new JsonArray(favs.size());
-//        for (Integer num : favs) {
-//            favsArr.add(num);
-//        }
-//        object.add(FAVS, favsArr);
-//        JsonArray roomsArr = new JsonArray(chatRooms.size());
-//        for (Room room : chatRooms) {
-//            roomsArr.add(room.getRoomUid());
-//        }
-//        object.add(ROOMS, roomsArr);
-//        object.addProperty(INFO, this.info.getUid());
-//
-//        return object.toString();
-//    }
 
     /**
      * Override toString function to create a json object.
@@ -630,6 +608,14 @@ public class UserInfo {
                     return NOT_DEFINED;
             }
         }
+
+        static public int[] getArrayOfIntsFrom(STD[] values) {
+            int[] stds = new int[values.length];
+            for (int i = 0; i < stds.length; i++) {
+                stds[i] = getValOf(values[i]);
+            }
+            return stds;
+        }
     }
 
     public enum Role {
@@ -696,7 +682,13 @@ public class UserInfo {
                     return NOT_DEFINED;
             }
         }
+        static public int[] getArrayOfIntsFrom(Disability[] values) {
+            int[] disabilites = new int[values.length];
+            for (int i = 0; i < disabilites.length; i++) {
+                disabilites[i] = getValOf(values[i]);
+            }
+            return disabilites;
+        }
     }
-
 
 }

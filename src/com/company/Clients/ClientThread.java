@@ -36,7 +36,6 @@ public class ClientThread extends Thread {
     public static final int UPDATE_USERINFO = 131;
     public static final int UPDATE_USER_FIELDS = 132;
 
-    public static final int TEST = 140;
     /*GEO_POINT*/
     public static final int UPDATE_LOCATION = 150;
     /*USER_INFO*/
@@ -125,10 +124,6 @@ public class ClientThread extends Thread {
                     System.out.println("UPDATE USER FIELDS");
                     updateUserFields();
                     break;
-                case TEST:
-                    System.out.println("TEST");
-                    testFunction();
-                    break;
                 case UPDATE_LOCATION:
                     System.out.println("UPDATE LOCATION");
                     updateLocation();
@@ -170,14 +165,17 @@ public class ClientThread extends Thread {
         }
     }
 
-    public static String readStringFromInptStrm(InputStream inputStream) throws IOException {
+    public static String readStringFromInptStrm(InputStream inputStream) {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         try{
             int nRead;
             int dataLength = inputStream.read();
-            byte[] data = new byte[dataLength];
-            while ((nRead = inputStream.read(data, 0, dataLength)) != -1) {
+            byte[] data = new byte[1024];
+            while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
                 buffer.write(data, 0, nRead);
+                if (nRead < 1024){
+                    break;
+                }
             }
             buffer.flush();
         }catch (Exception e){
@@ -264,8 +262,10 @@ public class ClientThread extends Thread {
 
     private void updateUserInfo() throws IOException{
         int uid = inputStream.read();
+        System.out.println("uid = "+uid);
         UserInfo userInfo = new UserInfo(inputStream);
-        UserInfo.updateUserInfo(uid, userInfo);
+
+        outputStream.write(UserInfo.updateUserInfo(uid, userInfo));
     }
 
     private void getNewUsers() throws IOException{
@@ -312,26 +312,5 @@ public class ClientThread extends Thread {
 
         outputStream.write(bytes.length);
         outputStream.write(bytes);
-    }
-
-    private void testFunction() throws IOException{
-        String statement1 = readStringFromInptStrm(inputStream);
-        System.out.println(statement1);
-        User user1 = new User(1, "Pierre", new GeoPoint(1,1), "", null, null, null);
-        User user2 = new User(2, "Michael", new GeoPoint(2,1), "", null, null, null);
-        Message message = new Message(2, "this is the last message between us bitch", Timestamp.valueOf("2021-02-14 18:08:18"), user1, user2);
-
-        String json = getGson().toJson(message);
-        try (Connection conn = getConn()) {
-            try (PreparedStatement statement = conn.prepareStatement(statement1)){
-
-                statement.setString(1, json);
-                statement.execute();
-            }catch (SQLException throwables) {
-                throwables.printStackTrace();
-            }
-        }catch (SQLException e) {
-            e.printStackTrace();
-        }
     }
 }
