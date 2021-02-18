@@ -561,33 +561,6 @@ public class User {
     }
 
     /**
-     * creates a json object to return to Client with Userinfo UID instead of Object.
-     * @return
-     * String: json object of Class User.
-     */
-    public String toClientString() {
-        JsonObject object = new JsonObject();
-        object.addProperty(UID, this.uid);
-        object.addProperty(USERNAME, this.username);
-        object.addProperty(LAT, this.geoPoint.getLat());
-        object.addProperty(LNG, this.geoPoint.getLng());
-        object.addProperty(IMG_URL, this.img_url);
-        JsonArray favsArr = new JsonArray(favs.size());
-        for (Integer num : favs) {
-            favsArr.add(num);
-        }
-        object.add(FAVS, favsArr);
-        JsonArray roomsArr = new JsonArray(chatRooms.size());
-        for (Room room : chatRooms) {
-            roomsArr.add(room.getUid());
-        }
-        object.add(ROOMS, roomsArr);
-        object.addProperty(INFO, this.info.getUid());
-
-        return object.toString();
-    }
-
-    /**
      * Override toString function to create a json object.
      * @return
      * String: json object of Class User.

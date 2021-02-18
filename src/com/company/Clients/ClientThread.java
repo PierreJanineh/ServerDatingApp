@@ -5,16 +5,9 @@ import com.company.Classes.*;
 import java.io.*;
 import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import static com.company.Classes.DBConnection.getConn;
-import static com.company.Classes.DBConnection.getGson;
 
 public class ClientThread extends Thread {
 
@@ -30,11 +23,12 @@ public class ClientThread extends Thread {
     public static final int GET_USERINFO = 125;
     public static final int GET_USERDISTANCE = 126;
     public static final int GET_FAVS = 127;
-    public static final int ADD_USER = 128;
-    public static final int ADD_FAV = 129;
-    public static final int REM_FAV = 130;
-    public static final int UPDATE_USERINFO = 131;
-    public static final int UPDATE_USER_FIELDS = 132;
+    public static final int GET_IMAGES = 128;
+    public static final int ADD_USER = 129;
+    public static final int ADD_FAV = 130;
+    public static final int REM_FAV = 131;
+    public static final int UPDATE_USERINFO = 132;
+    public static final int UPDATE_USER_FIELDS = 133;
 
     /*GEO_POINT*/
     public static final int UPDATE_LOCATION = 150;
@@ -87,6 +81,10 @@ public class ClientThread extends Thread {
                 case GET_CURRENT_USER:
                     System.out.println("GET CURRENT USER");
                     getCurrentUser();
+                    break;
+                case GET_IMAGES:
+                    System.out.println("GET IMAGES");
+                    getImages();
                     break;
                 case ADD_FAV:
                     System.out.println("ADD FAV");
@@ -200,6 +198,15 @@ public class ClientThread extends Thread {
             Message message = messages.get(i);
             message.write(outputStream);
         }
+    }
+
+    private void getImages() throws IOException{
+        int uid = inputStream.read();
+        ArrayList<Image> images = Image.getImages(uid);
+        String json = Image.getJsonStringFromArray(images);
+        byte[] bytes = json.getBytes();
+        outputStream.write(bytes.length);
+        outputStream.write(bytes);
     }
 
     private void getNearbyUsers() throws IOException{
