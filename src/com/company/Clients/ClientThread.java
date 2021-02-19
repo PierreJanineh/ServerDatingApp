@@ -254,10 +254,13 @@ public class ClientThread extends Thread {
 
     private void getFavourites() throws IOException{
         int currentUser = inputStream.read();
-        ArrayList<Integer> favs = User.getWholeCurrentUserByUID(currentUser).getFavs();
-        User[] users = User.getSmallUsersByUIDs(favs);
-        String json = User.getJsonStringFromArrayOfUsers(users);
+        List<UserDistance> favs = UserDistance.getDistanceFromFavUsers(User.getWholeCurrentUserByUID(currentUser));
+        String json = "";
+        if (favs != null){
+            json = UserDistance.getJsonStringFromListOfUserDistances(favs);
+        }
         byte[] bytes = json.getBytes();
+        System.out.println(json);
         outputStream.write(bytes.length);
         outputStream.write(bytes);
     }
@@ -276,8 +279,8 @@ public class ClientThread extends Thread {
     }
 
     private void getNewUsers() throws IOException{
-        int uid = inputStream.read();
-        List<UserDistance> users = User.getNewUsers(uid);
+        int currentUser = inputStream.read();
+        List<UserDistance> users = UserDistance.getNewUsers(currentUser);
         String json = UserDistance.getJsonStringFromListOfUserDistances(users);
         System.out.println("newUsers: "+json);
         byte[] bytes = json.getBytes();

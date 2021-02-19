@@ -436,7 +436,6 @@ public class User {
             e.printStackTrace();
         }
     }
-
     /**
      * Adds or Removes favourite users to/from list for User. This functions communicates with the DB.
      * @param action
@@ -513,41 +512,6 @@ public class User {
         return FAILURE;
     }
 
-    private static List<UserDistance> getNewUsersDB(int uid){
-        List<UserDistance> users = new ArrayList<>();
-        try (Connection conn = getConn()){
-            try (CallableStatement statement = conn.prepareCall(
-                    "CALL newUsers(?)")){
-                statement.setInt(1, uid);
-                System.out.println("uid "+uid);
-                try (ResultSet resultSet = statement.executeQuery()){
-                    while (resultSet.next()){
-                        System.out.println("Added a user");
-                        users.add(
-                                new UserDistance(
-                                        new User(resultSet, true),
-                                        resultSet.getFloat(10)));
-                    }
-                }catch (SQLException throwables) {
-                    throwables.printStackTrace();
-                }
-            }catch (SQLException throwables) {
-                throwables.printStackTrace();
-            }
-        }catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return users;
-    }
-
-    public List<UserDistance> getNewUsers(){
-        return getNewUsersDB(this.uid);
-    }
-
-    public static List<UserDistance> getNewUsers(int uid){
-        return getNewUsersDB(uid);
-    }
-
     /**
      * Write Json object to OutputStream.
      * @param outputStream
@@ -559,7 +523,6 @@ public class User {
         outputStream.write(bytes.length);
         outputStream.write(bytes);
     }
-
     /**
      * Override toString function to create a json object.
      * @return

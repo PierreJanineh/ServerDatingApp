@@ -2,6 +2,8 @@ package com.company.Classes;
 
 import com.company.Clients.ClientThread;
 import com.google.gson.*;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -60,7 +62,20 @@ public class UserDistance {
         this.distance = resultSet.getFloat(10);
     }
 
-    public static UserDistance getUserByUID(int currentUID, int otherUID){
+    @Nullable
+    public static List<UserDistance> getDistanceFromFavUsers(@NotNull User user){
+        if (user.getFavs().size() == 0){
+            return null;
+        }
+        ArrayList<UserDistance> distances = new ArrayList<>();
+        for (int i = 0; i < user.getFavs().size(); i++) {
+            distances.add(getUserByUID(user.getUid(), user.getFavs().get(i)));
+        }
+        return distances;
+    }
+
+    @Nullable
+    public static UserDistance getUserByUID(@NotNull int currentUID,@NotNull int otherUID){
         UserDistance userDistance = null;
         try (Connection conn = getConn()){
             try (PreparedStatement statement = conn.prepareStatement(GET_USER_DISTANCE_FUNC)){
@@ -110,6 +125,33 @@ public class UserDistance {
                 statement.setInt(1, uid);
                 try (ResultSet resultSet = statement.executeQuery()){
                     while (resultSet.next()){
+                        users.add(
+                                new UserDistance(
+                                        new User(resultSet, true),
+                                        resultSet.getFloat(10)));
+                    }
+                }catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                }
+            }catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+        }catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return users;
+    }
+
+    public static List<UserDistance> getNewUsers(int uid){
+        List<UserDistance> users = new ArrayList<>();
+        try (Connection conn = getConn()){
+            try (CallableStatement statement = conn.prepareCall(
+                    "CALL newUsers(?)")){
+                statement.setInt(1, uid);
+                System.out.println("uid "+uid);
+                try (ResultSet resultSet = statement.executeQuery()){
+                    while (resultSet.next()){
+                        System.out.println("Added a user");
                         users.add(
                                 new UserDistance(
                                         new User(resultSet, true),
