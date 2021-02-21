@@ -87,7 +87,6 @@ public class UserDistance {
                     }
                 }catch (Exception throwables) {
                     throwables.printStackTrace();
-                    System.out.println(throwables.toString());
                 }
             }catch (SQLException throwables) {
                 throwables.printStackTrace();
@@ -148,10 +147,8 @@ public class UserDistance {
             try (CallableStatement statement = conn.prepareCall(
                     "CALL newUsers(?)")){
                 statement.setInt(1, uid);
-                System.out.println("uid "+uid);
                 try (ResultSet resultSet = statement.executeQuery()){
                     while (resultSet.next()){
-                        System.out.println("Added a user");
                         users.add(
                                 new UserDistance(
                                         new User(resultSet, true),
@@ -175,7 +172,6 @@ public class UserDistance {
      * OutputStream to write to.
      */
     public void write(OutputStream outputStream) throws IOException {
-        System.out.println("UserDistance write: " + this.toString());
         byte[] bytes = this.toString().getBytes();
         outputStream.write(bytes.length);
         outputStream.write(bytes);

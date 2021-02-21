@@ -2,7 +2,7 @@ package com.company.Classes;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.stream.JsonReader;
+import com.google.gson.JsonArray;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -42,4 +42,13 @@ public class DBConnection {
         }
         return array;
     }
+
+    public static String createJsonArrayOf(ArrayList<Integer> ints){
+        JsonArray jsonArray = new JsonArray();
+        for (int num : ints) {
+            jsonArray.add(num);
+        }
+        return jsonArray.toString();
+    }
+
 }

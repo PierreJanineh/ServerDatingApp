@@ -1,18 +1,16 @@
 package com.company.Classes;
 
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonParser;
+import com.company.Clients.ClientThread;
+import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
 
+import java.io.InputStream;
 import java.io.StringReader;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 
-import static com.company.Classes.DBConnection.getConn;
-import static com.company.Classes.DBConnection.getGson;
+import static com.company.Classes.DBConnection.*;
 
 public class Room {
     public static final String CHATROOMS = "chatrooms";
@@ -37,17 +35,50 @@ public class Room {
      */
 
     private int uid;
-    private int[] seenBy;
-    private int[] messages; //uids
-    private int[] recipients; //uids
+    private ArrayList<Integer> seenBy;
+    private ArrayList<Integer> messages; //uids
+    private ArrayList<Integer> recipients; //uids
     private Message lastMessage;
 
-    public Room(int uid, int[] seenBy, int[] messages, int[] recipients, Message lastMessage) {
+    public Room(int uid, ArrayList<Integer> seenBy, ArrayList<Integer> messages, ArrayList<Integer> recipients, Message lastMessage) {
         this.uid = uid;
         this.seenBy = seenBy;
         this.messages = messages;
         this.recipients = recipients;
         this.lastMessage = lastMessage;
+    }
+
+
+    /**
+     * Creates a Room object from JsonObject.
+     * @param jsonObject
+     * Room jsonObject.
+     */
+    public Room(String jsonObject){
+        GsonBuilder builder = new GsonBuilder();
+        builder.setPrettyPrinting();
+
+        Gson gson = builder.create();
+        Room room = gson.fromJson(jsonObject, Room.class);
+        this.uid = room.getUid();
+        this.seenBy = room.getSeenBy();
+        this.messages = room.getMessages();
+        this.recipients = room.getRecipients();
+        this.lastMessage = room.getLastMessage();
+    }
+
+    /**
+     * Gets a room from InputStream by reading string and creating a new Room.
+     * @param inputStream
+     * InputStream object from the Socket
+     */
+    public Room(InputStream inputStream) {
+        Room jsonRoom = new Room(ClientThread.readStringFromInptStrm(inputStream));
+        this.uid = jsonRoom.getUid();
+        this.seenBy = jsonRoom.getSeenBy();
+        this.messages = jsonRoom.getMessages();
+        this.recipients = jsonRoom.getRecipients();
+        this.lastMessage = jsonRoom.getLastMessage();
     }
 
     /**
@@ -79,18 +110,23 @@ public class Room {
                 statement.setInt(1, uid);
                 try (ResultSet resultSet = statement.executeQuery()){
                     if (resultSet.next()) {
-                        JsonReader reader = getGson().newJsonReader(new StringReader(resultSet.getString(2)));
+                        JsonReader reader;
+                        int[] seenBy = null;
+                        if (resultSet.getString(2) != null && !resultSet.getString(2).isEmpty()) {
+                            reader = getGson().newJsonReader(resultSet.getCharacterStream(2));
+                            reader.setLenient(true);
+                            seenBy = getGson().fromJson(reader, int[].class);
+                        }
+                        reader = getGson().newJsonReader(resultSet.getCharacterStream(3));
                         reader.setLenient(true);
-                        int[] seenBy = getGson().fromJson(reader, int[].class);
-                        reader = getGson().newJsonReader(new StringReader(resultSet.getString(3)));
                         int[] messages = getGson().fromJson(reader, int[].class);
-                        reader = getGson().newJsonReader(new StringReader(resultSet.getString(4)));
-                        int [] recipients = getGson().fromJson(reader, int[].class);
+                        reader = getGson().newJsonReader(resultSet.getCharacterStream(4));
+                        int[] recipients = getGson().fromJson(reader, int[].class);
                         room = new Room(
                                 resultSet.getInt(1),
-                                seenBy,
-                                messages,
-                                recipients,
+                                getArrayListFromArray(seenBy),
+                                getArrayListFromArray(messages),
+                                getArrayListFromArray(recipients),
                                 getGson().fromJson(JsonParser.parseReader(resultSet.getCharacterStream(5)), Message.class));
                     }
                 }catch (SQLException throwables) {
@@ -104,7 +140,6 @@ public class Room {
         }
         return room;
     }
-
 
     /**
      * Get ArrayLis of Rooms by looping around getRoomFromUID method. This function communicates with the DB.
@@ -169,6 +204,98 @@ public class Room {
     }
 
     /**
+     * Add new Room to DB. If Room exists, update (seenBy,messages,lastMessage) fields. This function communicates with the DB.
+     * @param room
+     * Room object to add/update to/in DB.
+     * @return
+     * new room uid, 0 if room already exists.
+     */
+    public static int addRoom(Room room){
+        try(Connection conn = getConn()){
+            boolean roomAlreadyExists = false;
+            if (room.getUid() != 0) {
+                try (PreparedStatement statement = conn.prepareStatement("SELECT * FROM rooms WHERE uid=?")) {
+                    statement.setInt(1, room.getUid());
+                    try (ResultSet resultSet = statement.executeQuery()) {
+                        if (resultSet.next())
+                            roomAlreadyExists = true;
+                    }
+                }
+            }
+            if(roomAlreadyExists){
+                try(PreparedStatement statement = conn.prepareStatement(
+                        "UPDATE rooms SET seenBy=?,messages=?,lastmessage=? WHERE uid=?")){
+                    statement.setString(1, createJsonArrayOf(room.getSeenBy()));
+                    statement.setString(2, createJsonArrayOf(room.getMessages()));
+                    statement.setString(3, room.getLastMessage().toString());
+                    statement.setInt(4, room.getUid());
+                    statement.execute();
+                    return 0;
+                }
+            }
+            try(PreparedStatement statement = conn.prepareStatement(
+                    "INSERT INTO rooms(" +
+                            "seenby,messages," +
+                            "recipients,lastmessage)" +
+                            " VALUES (?,?,?,?)")){
+                statement.setString(1, room.getSeenBy() == null ? null : createJsonArrayOf(room.getSeenBy()));
+                statement.setString(2, createJsonArrayOf(room.getMessages()));
+                statement.setString(3, createJsonArrayOf(room.getRecipients()));
+                statement.setString(4, room.getLastMessage().toString());
+                statement.execute();
+                try (PreparedStatement getNewID = conn.prepareStatement("SELECT LAST_INSERT_ID()")){
+                    try (ResultSet resultSet = getNewID.executeQuery()){
+                        if (resultSet.next())
+                            return resultSet.getInt(1);
+                    }
+                }
+            }
+        }catch (SQLIntegrityConstraintViolationException e){
+            System.out.println("this key already exists in the table");
+//            if(e.getMessage().contains("'PRIMARY'")){
+//
+//            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    /**
+     * Add messageUid to Room field (messages), by getting the field value and adding the messageUid to the array and updating it in DB.
+     * @param messageUid
+     * New Message UID.
+     * @param roomUid
+     * Room UID to add Message to.
+     * @return
+     * true if succeeded, false if didn't.
+     */
+    public static boolean addMessageToRoom(int messageUid, int roomUid){
+        try(Connection conn = getConn()){
+            try(PreparedStatement statement = conn.prepareStatement("SELECT messages FROM rooms WHERE uid=?")){
+                statement.setInt(1, roomUid);
+                try(ResultSet resultSet = statement.executeQuery()){
+                    if(resultSet.next()) {
+                        String messagesArray = resultSet.getString(1);
+                        ArrayList<Integer> ints = new ArrayList<>();
+                        if (messagesArray != null && !messagesArray.isEmpty())
+                            ints = DBConnection.getArrayListFromArray(getGson().fromJson(messagesArray, int[].class));
+                        ints.add(messageUid);
+                        try (PreparedStatement updateMessagesField = conn.prepareStatement("UPDATE rooms SET messages=? WHERE uid=?")){
+                            updateMessagesField.setString(1, createJsonArrayOf(ints));
+                            updateMessagesField.setInt(2, roomUid);
+                            return statement.execute();
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
      * Override toString function to create a json object.
      * @return
      * String: json object of Class Room.
@@ -189,27 +316,27 @@ public class Room {
         this.uid = uid;
     }
 
-    public int[] getSeenBy() {
+    public ArrayList<Integer> getSeenBy() {
         return seenBy;
     }
 
-    public void setSeenBy(int[] seenBy) {
+    public void setSeenBy(ArrayList<Integer> seenBy) {
         this.seenBy = seenBy;
     }
 
-    public int[] getMessages() {
+    public ArrayList<Integer> getMessages() {
         return messages;
     }
 
-    public void setMessages(int[] messages) {
+    public void setMessages(ArrayList<Integer> messages) {
         this.messages = messages;
     }
 
-    public int[] getRecipients() {
+    public ArrayList<Integer> getRecipients() {
         return recipients;
     }
 
-    public void setRecipients(int[] recipients) {
+    public void setRecipients(ArrayList<Integer> recipients) {
         this.recipients = recipients;
     }
 

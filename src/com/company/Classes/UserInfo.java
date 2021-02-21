@@ -195,9 +195,8 @@ public class UserInfo {
                 statement.setString(11, gsonBuilder.create().toJson(userInfo.getStDs()));
                 statement.setInt(12, Role.getValOf(userInfo.getRole()));
                 statement.setString(13, gsonBuilder.create().toJson(userInfo.getDisabilities()));
-                int rowsAffected = statement.executeUpdate();
-                System.out.println("rows affected: " + rowsAffected);
-                return true;
+
+                return statement.execute();
             }
         }catch (SQLIntegrityConstraintViolationException e){
             System.out.println("here we understand that this key already exists in the table");
@@ -303,7 +302,6 @@ public class UserInfo {
      * OutputStream to write to.
      */
     public void write(OutputStream outputStream) throws IOException {
-        System.out.println("UserInfo write: " + this.toString());
         byte[] bytes = this.toString().getBytes();
         outputStream.write(bytes.length);
         outputStream.write(bytes);

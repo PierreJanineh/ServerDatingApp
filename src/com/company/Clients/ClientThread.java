@@ -7,7 +7,6 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class ClientThread extends Thread {
 
@@ -42,13 +41,9 @@ public class ClientThread extends Thread {
     private Socket socket;
     private InputStream inputStream;
     private OutputStream outputStream;
-    private List<Message> messages;
-    private Map<Integer, User> users;
 
-    public ClientThread(Socket socket, List<Message> messages, Map<Integer, User> users) {
+    public ClientThread(Socket socket) {
         this.socket = socket;
-        this.messages = messages;
-        this.users = users;
     }
 
     @Override
@@ -183,21 +178,50 @@ public class ClientThread extends Thread {
     }
 
     private void sendMessage() throws IOException{
-        Message message = new Message(inputStream);
-        messages.add(message);
-        outputStream.write(OKAY);
+        Room room = new Room(inputStream);
+        int msgID = Message.addMessage(room.getLastMessage());
+        room.getLastMessage().setUid(msgID);
+
+        if (room.getMessages() == null || room.getMessages().size() == 0){//if doesn't have messages, create new ArrayList and add message
+            room.setMessages(new ArrayList<>());
+            room.getMessages().add(msgID);
+        }else{//else add message to room.messages
+            room.getMessages().add(msgID);
+        }
+
+        int roomID = Room.addRoom(room);//if room already exists, update room.
+        if (roomID == 0){
+            roomID = room.getUid();
+            //No need to add room for user. room already exists.
+        }else{
+            User.addRoomToBothUsers(roomID, room.getLastMessage().getTo().getUid(), room.getLastMessage().getFrom().getUid());
+        }
+        Message.addRoomIdToMessage(roomID, msgID);
+        Room.addMessageToRoom(msgID, roomID);
+        outputStream.write(roomID);
     }
 
     private void getMessages() throws IOException{
+        int room = inputStream.read();
+        int from = inputStream.read();
+        if (from < 0)
+            from = 0;
+
+        Room roomObj = Room.getRoomFromUID(room);
+        System.out.println("before loop");
+        for (int i = from; i < roomObj.getMessages().size(); i++) {
+            Message message = Message.getMessageByUID(roomObj.getMessages().get(i));
+            System.out.println("looping message :"+message.toString());
+            message.write(outputStream);
+        }
+    }
+
+    private int readInt(InputStream inputStream) throws IOException {
         byte[] fromBytes = new byte[4];
         int actuallyRead = inputStream.read(fromBytes);
         if(actuallyRead != 4)
-            return;
-        int from = ByteBuffer.wrap(fromBytes).getInt();
-        for (int i = from; i < messages.size(); i++) {
-            Message message = messages.get(i);
-            message.write(outputStream);
-        }
+            return 0;
+        return ByteBuffer.wrap(fromBytes).getInt();
     }
 
     private void getImages() throws IOException{
@@ -213,7 +237,6 @@ public class ClientThread extends Thread {
         int uid = inputStream.read();
         List<UserDistance> users = UserDistance.getNearbyUsers(uid);
         String json = UserDistance.getJsonStringFromListOfUserDistances(users);
-        System.out.println("nearbyUsers: "+json);
         byte[] bytes = json.getBytes();
         outputStream.write(bytes.length);
         outputStream.write(bytes);
@@ -235,7 +258,8 @@ public class ClientThread extends Thread {
 
     private void getCurrentUser() throws IOException{
         int uid = inputStream.read();
-        User.getWholeCurrentUserByUID(uid).write(outputStream);
+        User user = User.getWholeCurrentUserByUID(uid);
+        user.write(outputStream);
     }
 
     private void addFavouriteUser() throws IOException{
@@ -260,7 +284,6 @@ public class ClientThread extends Thread {
             json = UserDistance.getJsonStringFromListOfUserDistances(favs);
         }
         byte[] bytes = json.getBytes();
-        System.out.println(json);
         outputStream.write(bytes.length);
         outputStream.write(bytes);
     }
@@ -272,7 +295,6 @@ public class ClientThread extends Thread {
 
     private void updateUserInfo() throws IOException{
         int uid = inputStream.read();
-        System.out.println("uid = "+uid);
         UserInfo userInfo = new UserInfo(inputStream);
 
         outputStream.write(UserInfo.updateUserInfo(uid, userInfo));
@@ -282,7 +304,7 @@ public class ClientThread extends Thread {
         int currentUser = inputStream.read();
         List<UserDistance> users = UserDistance.getNewUsers(currentUser);
         String json = UserDistance.getJsonStringFromListOfUserDistances(users);
-        System.out.println("newUsers: "+json);
+
         byte[] bytes = json.getBytes();
         outputStream.write(bytes.length);
         outputStream.write(bytes);
@@ -291,7 +313,7 @@ public class ClientThread extends Thread {
     private void getUserDistance() throws IOException, InterruptedException {
         int currentUID = inputStream.read();
         int otherUID = inputStream.read();
-        System.out.println("current: "+currentUID+" | other: "+otherUID);
+
         UserDistance.getUserByUID(currentUID, otherUID).write(outputStream);
     }
 

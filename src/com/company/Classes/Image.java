@@ -42,7 +42,6 @@ public class Image {
                     }
                 }catch (Exception throwables) {
                     throwables.printStackTrace();
-                    System.out.println(throwables.toString());
                 }
             }catch (SQLException throwables) {
                 throwables.printStackTrace();

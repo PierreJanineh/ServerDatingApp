@@ -9,6 +9,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.sql.*;
 
+import static com.company.Classes.DBConnection.getConn;
+
 public class Message {
 
     /*
@@ -79,15 +81,17 @@ public class Message {
     public static Message getMessageByUID(int uid){
         Message message = null;
         try (Connection conn = DBConnection.getConn()){
-            try (PreparedStatement statement = conn.prepareStatement("SELECT * FROM users WHERE uid=?")){
+            try (PreparedStatement statement = conn.prepareStatement("SELECT * FROM messages WHERE uid=?")){
                 statement.setInt(1, uid);
                 try (ResultSet resultSet = statement.executeQuery()){
-                    message = new Message(
-                            resultSet.getInt(1),
-                            resultSet.getString(2),
-                            resultSet.getTimestamp(3),
-                            User.getSmallUserByUID(resultSet.getInt(4)),
-                            User.getSmallUserByUID(resultSet.getInt(5)));
+                    if (resultSet.next()){
+                        message = new Message(
+                                resultSet.getInt(1),
+                                resultSet.getString(2),
+                                resultSet.getTimestamp(5),
+                                User.getSmallUserByUID(resultSet.getInt(3)),
+                                User.getSmallUserByUID(resultSet.getInt(4)));
+                    }
                 }catch (SQLException throwables) {
                     throwables.printStackTrace();
                 }
@@ -98,6 +102,63 @@ public class Message {
             e.printStackTrace();
         }
         return message;
+    }
+
+    /**
+     * Add new Message to DB. If Message exists, return.
+     * @param message
+     * Message object to add to DB.
+     * @return
+     * new Message uid, 0 if failed.
+     */
+    public static int addMessage(Message message){
+        try(Connection conn = getConn()){
+            try(PreparedStatement statement = conn.prepareStatement(
+                    "INSERT INTO messages" +
+                            " VALUES (null,?,?,?,?,null)")){
+                statement.setString(1, message.getContent());
+                statement.setInt(2, message.getTo().getUid());
+                statement.setInt(3, message.getFrom().getUid());
+                statement.setTimestamp(4, message.getTimestamp());
+                statement.execute();
+                try(PreparedStatement getNewID = conn.prepareStatement("SELECT LAST_INSERT_ID()")){
+                    try (ResultSet resultSet = getNewID.executeQuery()){
+                        if (resultSet.next())
+                            return resultSet.getInt(1);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    /**
+     * Updates room Id in Message after creation of Message and Room.
+     * @param room
+     * New Created Room UID.
+     * @param message
+     * New Created Message to update room UID in.
+     * @return
+     * true if succeeded, false if failed.
+     */
+    public static boolean addRoomIdToMessage(int room, int message){
+        try(Connection conn = getConn()){
+            try(PreparedStatement statement = conn.prepareStatement(
+                    "UPDATE messages SET room=? WHERE uid=?")){
+                statement.setInt(1, room);
+                statement.setInt(2, message);
+                return statement.execute();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     /**

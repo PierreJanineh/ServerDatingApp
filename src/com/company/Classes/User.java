@@ -133,10 +133,8 @@ public class User {
      * Gets a user from InputStream by reading string and creating a new User
      * @param inputStream
      * InputStream object from the Socket
-     * @throws IOException
-     * throws IOException if reading from InputStream fails.
      */
-    public User(InputStream inputStream) throws IOException {
+    public User(InputStream inputStream) {
         User jsonUser = new User(ClientThread.readStringFromInptStrm(inputStream));
         this.uid = jsonUser.getUid();
         this.username = jsonUser.getUsername();
@@ -185,7 +183,7 @@ public class User {
         try(Connection conn = getConn()){
             boolean userAlreadyExists = false;
             try(PreparedStatement statement = conn.prepareStatement("SELECT * FROM users WHERE uid=?")){
-                statement.setString(1, user.getUid()+"");
+                statement.setInt(1, user.getUid());
                 try(ResultSet resultSet = statement.executeQuery()){
                     if(resultSet.next())
                         userAlreadyExists = true;
@@ -208,9 +206,7 @@ public class User {
                 statement.setString(6, null);
                 statement.setString(7, null);
                 statement.setInt(8, user.getInfo().getUid());
-                int rowsAffected = statement.executeUpdate();
-                System.out.println("rows affected: " + rowsAffected);
-                return true;
+                return statement.execute();
             }
         }catch (SQLIntegrityConstraintViolationException e){
             System.out.println("this key already exists in the table");
@@ -221,6 +217,45 @@ public class User {
             e.printStackTrace();
         }
         return false;
+    }
+
+    /**
+     * Adds a RoomUid to User, by getting the array of roomUids and adding the new Uid and updating DB.
+     * @param room
+     * Room UID int.
+     * @param user
+     * User UID int.
+     * @return
+     * true if succeeded, false if didn't.
+     */
+    private static boolean addRoomToUser(int room, int user){
+        try(Connection conn = getConn()){
+            try(PreparedStatement statement = conn.prepareStatement("SELECT chatrooms FROM users WHERE uid=?")){
+                statement.setInt(1, user);
+                try(ResultSet resultSet = statement.executeQuery()){
+                    if(resultSet.next()) {
+                        String roomsArray = resultSet.getString(1);
+                        ArrayList<Integer> ints = new ArrayList<>();
+                        if (roomsArray != null && !roomsArray.isEmpty())
+                            ints = DBConnection.getArrayListFromArray(getGson().fromJson(roomsArray, int[].class));
+                        ints.add(room);
+                        try (PreparedStatement updateChatRoomsField = conn.prepareStatement("UPDATE users SET chatrooms=? WHERE uid=?")){
+                            updateChatRoomsField.setString(1, createJsonArrayOf(ints));
+                            updateChatRoomsField.setInt(2, user);
+                            return updateChatRoomsField.execute();
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public static void addRoomToBothUsers(int room, int user1, int user2){
+        addRoomToUser(room, user1);
+        addRoomToUser(room, user2);
     }
 
     public static String getJsonArrayOfUIDs(ArrayList<Integer> uids){
@@ -285,7 +320,6 @@ public class User {
                     }
                 }catch (Exception throwables) {
                     throwables.printStackTrace();
-                    System.out.println(throwables.toString());
                 }
             }catch (SQLException throwables) {
                 throwables.printStackTrace();
@@ -330,7 +364,6 @@ public class User {
                     }
                 }catch (Exception throwables) {
                     throwables.printStackTrace();
-                    System.out.println(throwables.toString());
                 }
             }catch (SQLException throwables) {
                 throwables.printStackTrace();
@@ -366,8 +399,7 @@ public class User {
                                 null);
                     }
                 }catch (Exception throwables) {
-//                    throwables.printStackTrace();
-                    System.out.println(throwables.toString());
+                    throwables.printStackTrace();
                 }
             }catch (SQLException throwables) {
                 throwables.printStackTrace();
@@ -436,6 +468,7 @@ public class User {
             e.printStackTrace();
         }
     }
+
     /**
      * Adds or Removes favourite users to/from list for User. This functions communicates with the DB.
      * @param action
@@ -492,7 +525,6 @@ public class User {
                         }
                     }
                     jsonString = builder.create().toJson(arrayList);
-                    System.out.println("jsonString + "+jsonString+" | current = "+currentUID+" | other = "+otherUID);
                     try (PreparedStatement updatingStatement = conn.prepareStatement("UPDATE users SET " + fieldToUpdate + "=? WHERE uid=?")){
                         updatingStatement.setString(1, jsonString);
                         updatingStatement.setInt(2, currentUID);
@@ -518,7 +550,6 @@ public class User {
      * OutputStream to write to.
      */
     public void write(OutputStream outputStream) throws IOException {
-        System.out.println("User write: " + this.toString());
         byte[] bytes = this.toString().getBytes();
         outputStream.write(bytes.length);
         outputStream.write(bytes);

@@ -18,8 +18,6 @@ public class ThreadedMessaging {
     public static void main(String args[]) {
         ServerSocket serverSocket = null;
         Socket socket = null;
-        List<Message> messagesList = new ArrayList<>();
-        Map<Integer, User> usersMap = new HashMap<>();
 
         try {
             serverSocket = new ServerSocket(PORT);
@@ -37,7 +35,7 @@ public class ThreadedMessaging {
             }
             // new thread for a client
             System.out.println("new thread");
-            new ClientThread(socket, messagesList, usersMap).start();
+            new ClientThread(socket).start();
         }
     }
 }
