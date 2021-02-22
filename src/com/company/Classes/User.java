@@ -283,11 +283,26 @@ public class User {
     /**
      * Get Json array of all users objects.
      * @param users
-     * ArrayList of Users.
+     * Array of Users.
      * @return
      * Json array containing all User objects provided.
      */
     public static String getJsonStringFromArrayOfUsers(User[] users){
+        GsonBuilder builder = new GsonBuilder();
+        builder.setPrettyPrinting();
+
+        Gson gson = builder.create();
+        return gson.toJson(users);
+    }
+
+    /**
+     * Get Json array of all users objects.
+     * @param users
+     * ArrayList of Users.
+     * @return
+     * Json array containing all User objects provided.
+     */
+    public static String getJsonStringFromArrayListOfUsers(ArrayList<User> users){
         GsonBuilder builder = new GsonBuilder();
         builder.setPrettyPrinting();
 

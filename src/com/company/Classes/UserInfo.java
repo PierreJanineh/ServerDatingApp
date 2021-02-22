@@ -9,6 +9,7 @@ import java.io.OutputStream;
 import java.sql.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 
 import static com.company.Classes.DBConnection.getConn;
 import static com.company.Classes.DBConnection.getGson;
@@ -425,15 +426,33 @@ public class UserInfo {
         this.disabilities = disabilities;
     }
 
+
     public enum Relationship {
-        NOT_DEFINED, SINGLE, IN_RELATIONSHIP;
+        NOT_DEFINED,
+        IN_RELATIONSHIP_SOLO,
+        IN_RELATIONSHIP_COUPLE,
+        IN_AN_OPEN_RELATIONSHIP,
+        SINGLE,
+        DIVORCED,
+        WIDOWED,
+        ITS_COPMLICATED;
 
         static public int getValOf(Relationship relationship){
             switch (relationship){
-                case SINGLE:
+                case IN_RELATIONSHIP_SOLO:
                     return 1;
-                case IN_RELATIONSHIP:
+                case IN_RELATIONSHIP_COUPLE:
                     return 2;
+                case IN_AN_OPEN_RELATIONSHIP:
+                    return 3;
+                case SINGLE:
+                    return 4;
+                case DIVORCED:
+                    return 5;
+                case WIDOWED:
+                    return 6;
+                case ITS_COPMLICATED:
+                    return 7;
                 default:
                     return 0;
             }
@@ -441,17 +460,31 @@ public class UserInfo {
         static public Relationship getEnumValOf(int code){
             switch (code){
                 case 1:
-                    return SINGLE;
+                    return IN_RELATIONSHIP_SOLO;
                 case 2:
-                    return IN_RELATIONSHIP;
+                    return IN_RELATIONSHIP_COUPLE;
+                case 3:
+                    return IN_AN_OPEN_RELATIONSHIP;
+                case 4:
+                    return SINGLE;
+                case 5:
+                    return DIVORCED;
+                case 6:
+                    return WIDOWED;
+                case 7:
+                    return ITS_COPMLICATED;
                 default:
                     return NOT_DEFINED;
             }
         }
     }
-                                                //TODO
+
     public enum Religion {
-        NOT_DEFINED, CHRISTIAN, MUSLIM, ATHEIST;
+        NOT_DEFINED,
+        CHRISTIAN,
+        MUSLIM,
+        JEW,
+        ATHEIST;
 
         static public int getValOf(Religion enumObj){
             switch (enumObj){
@@ -459,8 +492,10 @@ public class UserInfo {
                     return 1;
                 case MUSLIM:
                     return 2;
-                case ATHEIST:
+                case JEW:
                     return 3;
+                case ATHEIST:
+                    return 4;
                 default:
                     return 0;
             }
@@ -472,6 +507,8 @@ public class UserInfo {
                 case 2:
                     return MUSLIM;
                 case 3:
+                    return JEW;
+                case 4:
                     return ATHEIST;
                 default:
                     return NOT_DEFINED;
@@ -481,16 +518,28 @@ public class UserInfo {
     }
 
     public enum Orientation {
-        NOT_DEFINED, GAY, BISEXUAL, PANSEXUAL;
+        NOT_DEFINED,
+        STRAIGHT,
+        GAY,
+        BISEXUAL,
+        TRANSEXUAL,
+        TRANSGENDER,
+        PANSEXUAL;
 
         static public int getValOf(Orientation enumObj){
             switch (enumObj){
-                case GAY:
+                case STRAIGHT:
                     return 1;
-                case BISEXUAL:
+                case GAY:
                     return 2;
-                case PANSEXUAL:
+                case BISEXUAL:
                     return 3;
+                case TRANSEXUAL:
+                    return 4;
+                case TRANSGENDER:
+                    return 5;
+                case PANSEXUAL:
+                    return 6;
                 default:
                     return 0;
             }
@@ -498,10 +547,16 @@ public class UserInfo {
         static public Orientation getEnumValOf(int code){
             switch (code){
                 case 1:
-                    return GAY;
+                    return STRAIGHT;
                 case 2:
-                    return BISEXUAL;
+                    return GAY;
                 case 3:
+                    return BISEXUAL;
+                case 4:
+                    return TRANSEXUAL;
+                case 5:
+                    return TRANSGENDER;
+                case 6:
                     return PANSEXUAL;
                 default:
                     return NOT_DEFINED;
@@ -510,18 +565,25 @@ public class UserInfo {
     }
 
     public enum Ethnicity {
-        NOT_DEFINED, WHITE, MIDDLE_EASTERN, LATINO, BLACK;
+        NOT_DEFINED,
+        MIDDLE_EASTERN,
+        NATIVE_AMERICAN,
+        AFRICAN_AMERICAN,
+        EUROPEAN,
+        LATINO;
 
         static public int getValOf(Ethnicity enumObj){
             switch (enumObj){
-                case WHITE:
-                    return 1;
                 case MIDDLE_EASTERN:
+                    return 1;
+                case NATIVE_AMERICAN:
                     return 2;
-                case LATINO:
+                case AFRICAN_AMERICAN:
                     return 3;
-                case BLACK:
+                case EUROPEAN:
                     return 4;
+                case LATINO:
+                    return 5;
                 default:
                     return 0;
             }
@@ -529,13 +591,15 @@ public class UserInfo {
         static public Ethnicity getEnumValOf(int code){
             switch (code){
                 case 1:
-                    return WHITE;
-                case 2:
                     return MIDDLE_EASTERN;
+                case 2:
+                    return NATIVE_AMERICAN;
                 case 3:
-                    return LATINO;
+                    return AFRICAN_AMERICAN;
                 case 4:
-                    return BLACK;
+                    return EUROPEAN;
+                case 5:
+                    return LATINO;
                 default:
                     return NOT_DEFINED;
             }
@@ -543,7 +607,12 @@ public class UserInfo {
     }
 
     public enum Reference {
-        NOT_DEFINED, HE, SHE, THEY;
+        NOT_DEFINED,
+        HE,
+        SHE,
+        HE_SHE,
+        THEY,
+        OTHER;
 
         static public int getValOf(Reference enumObj){
             switch (enumObj){
@@ -551,8 +620,12 @@ public class UserInfo {
                     return 1;
                 case SHE:
                     return 2;
-                case THEY:
+                case HE_SHE:
                     return 3;
+                case THEY:
+                    return 4;
+                case OTHER:
+                    return 5;
                 default:
                     return 0;
             }
@@ -564,7 +637,11 @@ public class UserInfo {
                 case 2:
                     return SHE;
                 case 3:
+                    return HE_SHE;
+                case 4:
                     return THEY;
+                case 5:
+                    return OTHER;
                 default:
                     return NOT_DEFINED;
             }
@@ -572,7 +649,10 @@ public class UserInfo {
     }
 
     public enum STD {
-        NOT_DEFINED, NO_STDS, HIV, AIDS;
+        NOT_DEFINED,
+        NO_STDS,
+        HIV_POS,
+        HIV_NEG;
 
         static public STD[] getEnumsFrom(int[] codes) {
             STD[] stds = new STD[codes.length];
@@ -582,13 +662,21 @@ public class UserInfo {
             return stds;
         }
 
+        static public ArrayList<Integer> getArrayOfIntsFrom(STD[] values) {
+            ArrayList<Integer> stds = new ArrayList<>();
+            for (STD val : values) {
+                stds.add(getValOf(val));
+            }
+            return stds;
+        }
+
         static public int getValOf(STD enumObj){
             switch (enumObj){
                 case NO_STDS:
                     return 1;
-                case HIV:
+                case HIV_POS:
                     return 2;
-                case AIDS:
+                case HIV_NEG:
                     return 3;
                 default:
                     return 0;
@@ -599,25 +687,22 @@ public class UserInfo {
                 case 1:
                     return NO_STDS;
                 case 2:
-                    return HIV;
+                    return HIV_POS;
                 case 3:
-                    return AIDS;
+                    return HIV_NEG;
                 default:
                     return NOT_DEFINED;
             }
         }
-
-        static public int[] getArrayOfIntsFrom(STD[] values) {
-            int[] stds = new int[values.length];
-            for (int i = 0; i < stds.length; i++) {
-                stds[i] = getValOf(values[i]);
-            }
-            return stds;
-        }
     }
 
     public enum Role {
-        NOT_DEFINED, TOP, BOTTOM, VERSATILE, VERSATILE_TOP, VERSATILE_BOTTOM;
+        NOT_DEFINED,
+        TOP,
+        BOTTOM,
+        VERSATILE,
+        VERSATILE_TOP,
+        VERSATILE_BOTTOM;
 
         static public int getValOf(Role enumObj){
             switch (enumObj){
@@ -664,6 +749,14 @@ public class UserInfo {
             return disabilities;
         }
 
+        static public ArrayList<Integer> getArrayOfIntsFrom(Disability[] values) {
+            ArrayList<Integer> stds = new ArrayList<>();
+            for (Disability val : values) {
+                stds.add(getValOf(val));
+            }
+            return stds;
+        }
+
         static public int getValOf(Disability enumObj){
             switch (enumObj){
                 case BLIND:
@@ -679,13 +772,6 @@ public class UserInfo {
                 default:
                     return NOT_DEFINED;
             }
-        }
-        static public int[] getArrayOfIntsFrom(Disability[] values) {
-            int[] disabilites = new int[values.length];
-            for (int i = 0; i < disabilites.length; i++) {
-                disabilites[i] = getValOf(values[i]);
-            }
-            return disabilites;
         }
     }
 

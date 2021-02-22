@@ -296,6 +296,33 @@ public class Room {
     }
 
     /**
+     * Get all rooms other users. Users who are not the current user.
+     * @param uid
+     * Current user UID int.
+     * @return
+     * ArrayList of SmallUsers.
+     */
+    public static ArrayList<User> getUsersForRoomsOfUser(int uid){
+        ArrayList<User> users = new ArrayList<>();
+
+        ArrayList<Room> rooms = getAllRoomsForUser(uid);
+
+        if (rooms == null || rooms.size() == 0) {
+            return null;
+        }
+
+        for (Room room : rooms) {
+            if (room.getRecipients().get(0) != uid) {
+                users.add(User.getSmallUserByUID(room.getRecipients().get(0)));
+            }else {
+                users.add(User.getSmallUserByUID(room.getRecipients().get(1)));
+            }
+        }
+
+        return users;
+    }
+
+    /**
      * Override toString function to create a json object.
      * @return
      * String: json object of Class Room.

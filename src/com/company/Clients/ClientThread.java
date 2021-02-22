@@ -33,6 +33,7 @@ public class ClientThread extends Thread {
     public static final int UPDATE_LOCATION = 150;
     /*USER_INFO*/
     public static final int GET_ALL_ROOMS = 160;
+    public static final int GET_USERS_OF_ROOMS_FOR_USER = 161;
 
     /*SERVER_CODES*/
     public static final int OKAY = 200;
@@ -124,6 +125,10 @@ public class ClientThread extends Thread {
                 case GET_ALL_ROOMS:
                     System.out.println("GET ALL ROOMS");
                     getAllRooms();
+                    break;
+                case GET_USERS_OF_ROOMS_FOR_USER:
+                    System.out.println("GET USERS OF ROOMS FOR USER");
+                    getUsersOfRoomsForUser();
                     break;
                 default:
                     System.out.println("NOT AN ACTION CODE " + action);
@@ -340,6 +345,16 @@ public class ClientThread extends Thread {
     private void getAllRooms() throws IOException{
         int uid = inputStream.read();
         String json = Room.getJsonStringOfArrayOfRooms(Room.getAllRoomsForUser(uid));
+        byte[] bytes = json.getBytes();
+
+        outputStream.write(bytes.length);
+        outputStream.write(bytes);
+    }
+
+    private void getUsersOfRoomsForUser() throws IOException {
+        int uid = inputStream.read();
+        String json = User.getJsonStringFromArrayListOfUsers(Room.getUsersForRoomsOfUser(uid));
+
         byte[] bytes = json.getBytes();
 
         outputStream.write(bytes.length);
