@@ -4,11 +4,11 @@ import com.company.Clients.ClientThread;
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
 
+import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringReader;
+import java.io.OutputStream;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 import static com.company.Classes.DBConnection.*;
 
@@ -17,12 +17,12 @@ public class Room {
 
     /*
     rooms table in MySQL database columns:
-                1. uid              int PK      (room uid)
-                2. seenby           longtext    (json array of users' uids)
-                3. messages         longtext    (json array of messages' uids)
-                4. recipients       longtext    (json array of users' uids)
-                5. lastmessage      longtext    (last message content)
-
+                1. uid                  int PK      (room uid)
+                2. seenby               longtext    (json array of users' uids)
+                3. messages             longtext    (json array of messages' uids)
+                4. recipients           longtext    (json array of users' uids)
+                5. lastmessage          longtext    (last message content)
+                6. last_seen_msg_uid    int         (last seen message uid)
      */
 
     /*
@@ -32,6 +32,7 @@ public class Room {
                   3. messages       ArrayList<Integer>
                   4. recipients     ArrayList<Integer>
                   5. lastMessage    Message
+                  6. lastSeen      int
      */
 
     private int uid;
@@ -39,13 +40,15 @@ public class Room {
     private ArrayList<Integer> messages; //uids
     private ArrayList<Integer> recipients; //uids
     private Message lastMessage;
+    private int lastSeen;
 
-    public Room(int uid, ArrayList<Integer> seenBy, ArrayList<Integer> messages, ArrayList<Integer> recipients, Message lastMessage) {
+    public Room(int uid, ArrayList<Integer> seenBy, ArrayList<Integer> messages, ArrayList<Integer> recipients, Message lastMessage, int lastSeen) {
         this.uid = uid;
         this.seenBy = seenBy;
         this.messages = messages;
         this.recipients = recipients;
         this.lastMessage = lastMessage;
+        this.lastSeen = lastSeen;
     }
 
 
@@ -127,7 +130,8 @@ public class Room {
                                 getArrayListFromArray(seenBy),
                                 getArrayListFromArray(messages),
                                 getArrayListFromArray(recipients),
-                                getGson().fromJson(JsonParser.parseReader(resultSet.getCharacterStream(5)), Message.class));
+                                getGson().fromJson(JsonParser.parseReader(resultSet.getCharacterStream(5)), Message.class),
+                                resultSet.getInt(6));
                     }
                 }catch (SQLException throwables) {
                     throwables.printStackTrace();
@@ -211,17 +215,8 @@ public class Room {
      * new room uid, 0 if room already exists.
      */
     public static int addRoom(Room room){
-        try(Connection conn = getConn()){
-            boolean roomAlreadyExists = false;
-            if (room.getUid() != 0) {
-                try (PreparedStatement statement = conn.prepareStatement("SELECT * FROM rooms WHERE uid=?")) {
-                    statement.setInt(1, room.getUid());
-                    try (ResultSet resultSet = statement.executeQuery()) {
-                        if (resultSet.next())
-                            roomAlreadyExists = true;
-                    }
-                }
-            }
+        boolean roomAlreadyExists = checkIfRoomExists(room.getUid());
+        try (Connection conn = getConn()) {
             if(roomAlreadyExists){
                 try(PreparedStatement statement = conn.prepareStatement(
                         "UPDATE rooms SET seenBy=?,messages=?,lastmessage=? WHERE uid=?")){
@@ -242,23 +237,30 @@ public class Room {
                 statement.setString(2, createJsonArrayOf(room.getMessages()));
                 statement.setString(3, createJsonArrayOf(room.getRecipients()));
                 statement.setString(4, room.getLastMessage().toString());
-                statement.execute();
-                try (PreparedStatement getNewID = conn.prepareStatement("SELECT LAST_INSERT_ID()")){
-                    try (ResultSet resultSet = getNewID.executeQuery()){
-                        if (resultSet.next())
-                            return resultSet.getInt(1);
-                    }
-                }
+                Integer resultSet = DBConnection.executeAndGetID(conn, statement);
+                if (resultSet != null) return resultSet;
             }
-        }catch (SQLIntegrityConstraintViolationException e){
-            System.out.println("this key already exists in the table");
-//            if(e.getMessage().contains("'PRIMARY'")){
-//
-//            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return 0;
+    }
+
+    private static boolean checkIfRoomExists(int room) {
+        try (Connection conn = getConn()) {
+            if (room != 0) {
+                try (PreparedStatement statement = conn.prepareStatement("SELECT * FROM rooms WHERE uid=?")) {
+                    statement.setInt(1, room);
+                    try (ResultSet resultSet = statement.executeQuery()) {
+                        if (resultSet.next())
+                            return true;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     /**
@@ -276,10 +278,7 @@ public class Room {
                 statement.setInt(1, roomUid);
                 try(ResultSet resultSet = statement.executeQuery()){
                     if(resultSet.next()) {
-                        String messagesArray = resultSet.getString(1);
-                        ArrayList<Integer> ints = new ArrayList<>();
-                        if (messagesArray != null && !messagesArray.isEmpty())
-                            ints = DBConnection.getArrayListFromArray(getGson().fromJson(messagesArray, int[].class));
+                        ArrayList<Integer> ints = getUIDsField(1, resultSet);
                         ints.add(messageUid);
                         try (PreparedStatement updateMessagesField = conn.prepareStatement("UPDATE rooms SET messages=? WHERE uid=?")){
                             updateMessagesField.setString(1, createJsonArrayOf(ints));
@@ -292,6 +291,23 @@ public class Room {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        return false;
+    }
+
+    public static boolean updateLastSeen(int room, int lastSeen){
+        boolean roomAlreadyExists = checkIfRoomExists(room);
+        try(Connection conn = getConn()){
+        if (!roomAlreadyExists){
+            return false;
+        }
+        try(PreparedStatement statement = conn.prepareStatement("UPDATE rooms SET last_seen_msg_uid=? WHERE uid=?")){
+            statement.setInt(1, lastSeen);
+            statement.setInt(2, room);
+            return statement.execute();
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
         return false;
     }
 
@@ -320,6 +336,13 @@ public class Room {
         }
 
         return users;
+    }
+
+    public void write(OutputStream outputStream) throws IOException {
+        String s = this.toString();
+
+        outputStream.write(s.getBytes().length);
+        outputStream.write(s.getBytes());
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.company.Classes;
 
+import com.company.Clients.ClientThread;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -22,14 +23,8 @@ public class GeoPoint {
     }
 
     public GeoPoint(InputStream inputStream) throws IOException{
-        int jsonLength = inputStream.read();
-        if (jsonLength == -1)
-            throw new IOException("json hasn't been sent");
-        byte[] jsonBytes = new byte[jsonLength];
-        int actuallyRead = inputStream.read(jsonBytes);
-        if (actuallyRead != jsonLength)
-            throw new IOException("");
-        GeoPoint jsonGeoPoint = getGeoPointFromJson(new String(jsonBytes));
+        String s = ClientThread.readStringFromInptStrm(inputStream);
+        GeoPoint jsonGeoPoint = getGeoPointFromJson(s);
         this.lat = jsonGeoPoint.getLat();
         this.lng = jsonGeoPoint.getLng();
     }

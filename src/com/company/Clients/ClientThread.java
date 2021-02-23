@@ -34,6 +34,7 @@ public class ClientThread extends Thread {
     /*USER_INFO*/
     public static final int GET_ALL_ROOMS = 160;
     public static final int GET_USERS_OF_ROOMS_FOR_USER = 161;
+    public static final int PROFILE_VIEW = 162;
 
     /*SERVER_CODES*/
     public static final int OKAY = 200;
@@ -130,6 +131,10 @@ public class ClientThread extends Thread {
                     System.out.println("GET USERS OF ROOMS FOR USER");
                     getUsersOfRoomsForUser();
                     break;
+                case PROFILE_VIEW:
+                    System.out.println("PROFILE VIEW");
+                    profileView();
+                    break;
                 default:
                     System.out.println("NOT AN ACTION CODE " + action);
             }
@@ -189,21 +194,21 @@ public class ClientThread extends Thread {
 
         if (room.getMessages() == null || room.getMessages().size() == 0){//if doesn't have messages, create new ArrayList and add message
             room.setMessages(new ArrayList<>());
-            room.getMessages().add(msgID);
-        }else{//else add message to room.messages
-            room.getMessages().add(msgID);
         }
+        room.getMessages().add(msgID);
 
         int roomID = Room.addRoom(room);//if room already exists, update room.
         if (roomID == 0){
             roomID = room.getUid();
             //No need to add room for user. room already exists.
         }else{
+            room.setUid(roomID);
             User.addRoomToBothUsers(roomID, room.getLastMessage().getTo().getUid(), room.getLastMessage().getFrom().getUid());
         }
         Message.addRoomIdToMessage(roomID, msgID);
         Room.addMessageToRoom(msgID, roomID);
-        outputStream.write(roomID);
+        room.write(outputStream);
+//        outputStream.write(roomID);
     }
 
     private void getMessages() throws IOException{
@@ -359,5 +364,12 @@ public class ClientThread extends Thread {
 
         outputStream.write(bytes.length);
         outputStream.write(bytes);
+    }
+
+    private void profileView() throws IOException {
+        int uid = inputStream.read();
+        int otherUID = inputStream.read();
+
+        User.profileView(uid, otherUID);
     }
 }

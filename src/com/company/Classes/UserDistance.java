@@ -98,14 +98,8 @@ public class UserDistance {
     }
 
     public static List<UserDistance> readUsers(InputStream inputStream) throws IOException{
-        int jsonLength = inputStream.read();
-        if (jsonLength == -1)
-            throw new IOException("json hasn't been sent");
-        byte[] jsonBytes = new byte[jsonLength];
-        int actuallyRead = inputStream.read(jsonBytes);
-        if (actuallyRead != jsonLength)
-            throw new IOException("");
-        return Arrays.asList(getArrayOfUserDistancesFromJson(new String(jsonBytes)));
+        String s = ClientThread.readStringFromInptStrm(inputStream);
+        return Arrays.asList(getArrayOfUserDistancesFromJson(s));
     }
 
     public static UserDistance[] getArrayOfUserDistancesFromJson(String json) {

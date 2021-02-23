@@ -120,13 +120,8 @@ public class Message {
                 statement.setInt(2, message.getTo().getUid());
                 statement.setInt(3, message.getFrom().getUid());
                 statement.setTimestamp(4, message.getTimestamp());
-                statement.execute();
-                try(PreparedStatement getNewID = conn.prepareStatement("SELECT LAST_INSERT_ID()")){
-                    try (ResultSet resultSet = getNewID.executeQuery()){
-                        if (resultSet.next())
-                            return resultSet.getInt(1);
-                    }
-                }
+                Integer resultSet = DBConnection.executeAndGetID(conn, statement);
+                if (resultSet != null) return resultSet;
             }
         } catch (SQLException e) {
             e.printStackTrace();

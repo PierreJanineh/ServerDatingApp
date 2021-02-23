@@ -8,6 +8,7 @@ import java.io.*;
 
 import java.sql.*;
 import java.util.*;
+import java.util.Date;
 
 import static com.company.Classes.DBConnection.*;
 import static com.company.Clients.ClientThread.FAILURE;
@@ -234,13 +235,10 @@ public class User {
                 statement.setInt(1, user);
                 try(ResultSet resultSet = statement.executeQuery()){
                     if(resultSet.next()) {
-                        String roomsArray = resultSet.getString(1);
-                        ArrayList<Integer> ints = new ArrayList<>();
-                        if (roomsArray != null && !roomsArray.isEmpty())
-                            ints = DBConnection.getArrayListFromArray(getGson().fromJson(roomsArray, int[].class));
-                        ints.add(room);
+                        ArrayList<Integer> rooms = getUIDsField(1, resultSet);
+                        rooms.add(room);
                         try (PreparedStatement updateChatRoomsField = conn.prepareStatement("UPDATE users SET chatrooms=? WHERE uid=?")){
-                            updateChatRoomsField.setString(1, createJsonArrayOf(ints));
+                            updateChatRoomsField.setString(1, createJsonArrayOf(rooms));
                             updateChatRoomsField.setInt(2, user);
                             return updateChatRoomsField.execute();
                         }
@@ -557,6 +555,33 @@ public class User {
             e.printStackTrace();
         }
         return FAILURE;
+    }
+
+    public static void profileView(int uid, int otherUID){
+        try(Connection conn = getConn()){
+            boolean viewExists = false;
+            try(PreparedStatement statement = conn.prepareStatement("SELECT * FROM profile_views WHERE viewing_user=?")){
+                statement.setInt(1, uid);
+                try(ResultSet resultSet = statement.executeQuery()){
+                    if(resultSet.next()) {
+                        try (PreparedStatement preparedStatement = conn.prepareStatement("UPDATE profile_views SET timestamp=? WHERE viewing_user=?")) {
+                            preparedStatement.setTimestamp(1, new Timestamp(new Date().getTime()));
+                            preparedStatement.setInt(2, uid);
+                            preparedStatement.execute();
+                            return;
+                        }
+                    }
+                }
+            }
+            try(PreparedStatement statement = conn.prepareStatement("INSERT INTO profile_views VALUES (null,?,?,?)")){
+                statement.setInt(1, otherUID);
+                statement.setInt(2, uid);
+                statement.setTimestamp(3, new Timestamp(new Date().getTime()));
+                statement.execute();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
