@@ -8,9 +8,15 @@ The dating app and server are currently under development. Note that some change
 
 ## Libraries used
 * Architecture and Data management
+  * [Threads](https://docs.oracle.com/javase/tutorial/essential/concurrency/runthread.html)
   * [MySQL Connector](https://dev.mysql.com/doc/connector-j/8.0/en/)
 * Third party libraries
   * [Gson](https://github.com/google/gson)
+
+## Other Technologies
+* MySQL Server
+* Google Cloud Console - Compute Engine
+  Used to run the App server and MySQL server on a virtual machine to enable mobile devices communications with the server.
   
 ## Upcoming features
 ### Updates will include:
